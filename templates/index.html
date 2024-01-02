@@ -232,6 +232,11 @@
 
                     window.location = '{{ url_for('login_page') }}';
                 }
+
+                if (message.body == 'keep')
+                {
+
+                }
             } else {
                 console.log('got empty message')
             }
