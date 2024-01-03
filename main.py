@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from datetime import datetime, timedelta
 
 import yaml
@@ -11,7 +12,7 @@ import stomp
 from gevent import pywsgi
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import (JWTManager, jwt_required, create_access_token, get_jwt_identity, set_access_cookies,
-                                create_refresh_token, unset_jwt_cookies)
+                                create_refresh_token, unset_jwt_cookies, decode_token)
 
 from flask_apscheduler import APScheduler
 
@@ -43,32 +44,6 @@ mq_conn.connect()
 app.config['SCHEDULER_API_ENABLED'] = True
 scheduler = APScheduler()
 scheduler.init_app(app)
-
-
-# 定时任务
-@scheduler.task('cron', id='update_login_table', minute='5')
-def job1():
-    # 连接MySQL
-    mysql_conn = pymysql.connect(
-        host=db_host,
-        port=int(db_port),
-        user=db_user,
-        password=db_password,
-        database=db_database
-    )
-    cursor = mysql_conn.cursor()
-
-    # 将距现在两小时的登录用户踢下线
-    sql = ("UPDATE t_login "
-           "SET AccessToken='', RefreshToken='', State='expire' "
-           "WHERE AccessTime < CURRENT_TIMESTAMP - INTERVAL 2 HOUR")
-    cursor.execute(sql)
-
-    sql = 'SELECT * FROM t_login WHERE AccessTime < CURRENT_TIMESTAMP - INTERVAL 2 HOUR'
-    cursor.execute(sql)
-    result = cursor.fetchall()
-    for it in result:
-        print(it)
 
 
 class User(db.Model):
@@ -149,6 +124,23 @@ def get_login_state_by_access_token():
         return jsonify(code=Response.online)
 
     return jsonify(code=Response.online)
+
+
+@jwt.expired_token_loader
+def expired_token_callback(jwt_header, jwt_payload):
+    sub = jwt_payload['sub']
+    uid, device = sub['uid'], sub['device']
+
+    # 将设备踢下线
+    _login = db.session.query(Login).filter(Login.user == uid, Login.device == device).first()
+    _login.state = 'logout'
+    _login.access_token = ''
+    _login.refresh_token = ''
+    db.session.commit()
+
+    mq_conn.send(_login.queue_listener, 'keep')
+
+    return jsonify(code=Response.keep_alive)
 
 
 @app.route('/user/get_access_token', methods=['POST'], endpoint='/user/get_access_token')
@@ -245,10 +237,12 @@ def logout():
     _login.refresh_token = ''
     db.session.commit()
 
+    mq_conn.send(f'{_login.queue_listener}', 'logout')
+
     return jsonify(code=Response.ok)
 
 
-@app.route('/user/page/404', methods=['GET'])
+@app.route('/user/page/404', methods=['GET'], endpoint='404_page')
 def logout_page():
     return render_template("./404.html")
 
@@ -257,21 +251,22 @@ def logout_page():
 @jwt_required(refresh=True, locations=["json"])
 def refresh():
     identity = get_jwt_identity()
-    uid = identity.get('uid')
-    device = identity.get('device')
 
     # 刷新
-    access_token = create_access_token(identity=identity)
+    access_token = create_access_token(identity=identity, expires_delta=timedelta(hours=2))
+
+    decoded = decode_token(encoded_token=access_token)
+    uid = decoded['sub']['uid']
+    device = decoded['sub']['device']
 
     # 写入数据库
-    _login = db.session.query(Login).filter(Login.id == uid, Login.device == device).first()
+    _login = db.session.query(Login).filter(Login.user == uid, Login.device == device).first()
     _login.access_token = access_token
+    _login.refresh_time = datetime.now()
     db.session.commit()
 
     return jsonify(access_token=access_token)
 
-
-scheduler.start()
 
 if __name__ == '__main__':
     port = int(cfg['server']['port'])

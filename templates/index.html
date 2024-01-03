@@ -169,10 +169,12 @@
                     {
                         localStorage.removeItem("access_key");
                         localStorage.removeItem("refresh_key");
-                        localStorage.removeItem("queue_listener");
 
                         window.location = '{{ url_for('login_page') }}';
                     }
+
+                    if (code == 405)
+                        console.log('token is expire!')
                 }
             });
         }
@@ -186,64 +188,70 @@
                 url: "{{ url_for('/user/logout') }}",
                 success: function(result) {
                     var code = result.code
+
+                    localStorage.removeItem("access_key");
+                    localStorage.removeItem("refresh_key");
+
                     if(code == 200)
-                        layer.msg('退出登录成功', function () {
-                            localStorage.removeItem("access_key");
-                            localStorage.removeItem("refresh_key");
-                            localStorage.removeItem("queue_listener");
-                            window.location = '{{ url_for('login_page') }}';
-                        });
+                        console.log('请求成功')
+                    if(code == 405)
+                        window.location = '{{ url_for('login_page') }}';
                 }
             });
         });
-    });
 
-    function get_guid() {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-            var r = Math.random() * 16 | 0,
-                v = c == 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-        });
-    }
+        // 登陆状态保活
+        function get_guid() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                var r = Math.random() * 16 | 0,
+                    v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
 
-    if (localStorage.getItem("guid") == null)
-        localStorage.setItem("guid", get_guid())
+        if (localStorage.getItem("guid") == null)
+            localStorage.setItem("guid", get_guid())
 
-    let stomp_url = 'ws://{{ stomp_config.host }}:{{ stomp_config.port }}/stomp';
-    stomp_client = Stomp.client(stomp_url);
-    console.log(stomp_client);
-    let stomp_headers = {
-        login: '{{ stomp_config.user }}',
-        passcode: '{{ stomp_config.passcode }}',
-        'client-id': localStorage.getItem("guid")
-    };
-    let destination = localStorage.getItem("queue_listener");
-    stomp_client.connect(stomp_headers, () => {
-        console.log('connect success');
-        stomp_client.subscribe(destination, (message) => {
-            if (message.body) {
-                if(message.body == 'logout')
+        let stomp_url = 'ws://{{ stomp_config.host }}:{{ stomp_config.port }}/stomp';
+        stomp_client = Stomp.client(stomp_url);
+        console.log(stomp_client);
+        let stomp_headers = {
+            login: '{{ stomp_config.user }}',
+            passcode: '{{ stomp_config.passcode }}',
+            'client-id': localStorage.getItem("guid")
+        };
+        let destination = localStorage.getItem("queue_listener");
+        stomp_client.connect(stomp_headers, () => {
+            console.log('connect success');
+            stomp_client.subscribe(destination, (message) => {
+                if (message.body)
                 {
-                    localStorage.removeItem("access_key");
-                    localStorage.removeItem("refresh_key");
-                    localStorage.removeItem("queue_listener");
+                    console.log(message.body)
+                    if(message.body == 'logout')
+                    {
+                        alert('设备下线...')
 
-                    alert('设备下线...')
-
-                    window.location = '{{ url_for('login_page') }}';
+                        window.location = '{{ url_for('login_page') }}';
+                    }
+                    else if (message.body == 'keep')
+                    {
+                        // keep alive
+                        $.ajax({
+                            type: "POST",
+                            url: "{{ url_for('/user/refresh') }}",
+                            data: JSON.stringify({refresh_token: localStorage.getItem('refresh_key')}),
+                            contentType:'application/json',
+                            success: function(data){
+                                localStorage.setItem('access_key', data.access_token);
+                            },
+                        });
+                    }
                 }
-
-                if (message.body == 'keep')
-                {
-
-                }
-            } else {
-                console.log('got empty message')
-            }
+            })
+        }, () => {
+            console.log('connect failed')
         })
-    }, () => {
-        console.log('connect failed')
-    })
+    });
 </script>
 </body>
 </html>

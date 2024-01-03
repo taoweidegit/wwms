@@ -5,3 +5,4 @@ class Response:
     expire = 402
     online = 403
     logout = 401
+    keep_alive = 405

@@ -155,6 +155,8 @@
                         localStorage.setItem('access_key', result.access_token);
                         localStorage.setItem('refresh_key', result.refresh_token);
                         localStorage.setItem('queue_listener', result.queue_listener);
+
+                        window.location = '{{ url_for('index_page') }}'
                     }
                 }
             });
