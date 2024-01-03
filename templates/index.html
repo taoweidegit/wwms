@@ -189,9 +189,6 @@
                 success: function(result) {
                     var code = result.code
 
-                    localStorage.removeItem("access_key");
-                    localStorage.removeItem("refresh_key");
-
                     if(code == 200)
                         console.log('请求成功')
                     if(code == 405)
@@ -230,6 +227,9 @@
                     if(message.body == 'logout')
                     {
                         alert('设备下线...')
+
+                        localStorage.removeItem("access_key");
+                        localStorage.removeItem("refresh_key");
 
                         window.location = '{{ url_for('login_page') }}';
                     }
