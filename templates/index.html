@@ -192,7 +192,13 @@
                     if(code == 200)
                         console.log('请求成功')
                     if(code == 405)
-                        window.location = '{{ url_for('login_page') }}';
+                    {
+                        var queue_listener = localStorage.getItem("queue_listener");
+                        if(queue_listener == null)
+                            window.location = '{{ url_for('404_page') }}'
+                        var req_url = '{{ url_for('/user/force_logout') }}?queue_listener=' + queue_listener
+                        $.get(req_url);
+                    }
                 }
             });
         });
@@ -242,7 +248,8 @@
                             data: JSON.stringify({refresh_token: localStorage.getItem('refresh_key')}),
                             contentType:'application/json',
                             success: function(data){
-                                localStorage.setItem('access_key', data.access_token);
+                                if(data.access_token != '-1')
+                                    localStorage.setItem('access_key', data.access_token);
                             },
                         });
                     }

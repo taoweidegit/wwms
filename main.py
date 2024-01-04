@@ -237,7 +237,24 @@ def logout():
     _login.refresh_token = ''
     db.session.commit()
 
-    mq_conn.send(f'{_login.queue_listener}', 'logout')
+    mq_conn.send(_login.queue_listener, 'logout')
+
+    return jsonify(code=Response.ok)
+
+
+@app.route('/user/force_logout', methods=['GET'], endpoint='/user/force_logout')
+def force_logout():
+    queue_listener = request.args.get("queue_listener")
+
+    _login = db.session.query(Login).filter(Login.queue_listener == queue_listener)
+    if _login is not None:
+        _login = _login.first()
+        _login.state = 'logout'
+        _login.access_token = ''
+        _login.refresh_token = ''
+        db.session.commit()
+
+        mq_conn.send(_login.queue_listener, 'logout')
 
     return jsonify(code=Response.ok)
 
@@ -261,11 +278,12 @@ def refresh():
 
     # 写入数据库
     _login = db.session.query(Login).filter(Login.user == uid, Login.device == device).first()
-    _login.access_token = access_token
-    _login.refresh_time = datetime.now()
-    db.session.commit()
-
-    return jsonify(access_token=access_token)
+    if _login.state != 'logout':
+        _login.access_token = access_token
+        _login.refresh_time = datetime.now()
+        db.session.commit()
+        return jsonify(access_token=access_token)
+    return jsonify(access_token=str(-1))
 
 
 if __name__ == '__main__':
