@@ -90,6 +90,10 @@ def send_message_with_logout(queue_listener):
     requests.get(f'http://127.0.0.1:8080/queue/sendMessage?queueName={queue_listener}&&message=logout')
 
 
+def send_message_with_keep_alive(queue_listener):
+    requests.get(f'http://127.0.0.1:8080/queue/sendMessage?queueName={queue_listener}&&message=keep')
+
+
 @app.route('/', endpoint='index_page')
 def index():
     stomp_config = {
@@ -142,7 +146,8 @@ def expired_token_callback(jwt_header, jwt_payload):
     _login.refresh_token = ''
     db.session.commit()
 
-    mq_conn.send(_login.queue_listener, 'keep')
+    # mq_conn.send(_login.queue_listener, 'keep')
+    send_message_with_keep_alive(_login.queue_listener)
 
     return jsonify(code=Response.keep_alive)
 
