@@ -197,7 +197,9 @@
                         if(queue_listener == null)
                             window.location = '{{ url_for('404_page') }}'
                         var req_url = '{{ url_for('/user/force_logout') }}?queue_listener=' + queue_listener
-                        $.get(req_url);
+                        $.get(req_url, function(data){
+                            window.location = '{{ url_for('login_page') }}'
+                        });
                     }
                 }
             });
@@ -258,7 +260,12 @@
         }, () => {
             console.log('connect failed')
         })
+
+        setInterval(function () {
+            stomp_client.send('heart_beat',{},destination)
+        }, 20 * 1000);
     });
+
 </script>
 </body>
 </html>

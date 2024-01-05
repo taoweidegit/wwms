@@ -4,7 +4,7 @@ import time
 from datetime import datetime, timedelta
 
 import yaml
-import pymysql
+import requests
 from flask import Flask, render_template, request, jsonify
 import uuid
 import stomp
@@ -84,6 +84,10 @@ class Login(db.Model):
     refresh_time = db.Column('RefreshTime', db.DateTime)
     device = db.Column('Device', db.String)
     queue_listener = db.Column('QueueListener', db.String)
+
+
+def send_message_with_logout(queue_listener):
+    requests.get(f'http://127.0.0.1:8080/queue/sendMessage?queueName={queue_listener}&&message=logout')
 
 
 @app.route('/', endpoint='index_page')
@@ -178,7 +182,7 @@ def get_access_token():
             access_token=access_token,
             refresh_token=refresh_token,
             device=device,
-            queue_listener=uuid.uuid1(),
+            queue_listener=f'channel_{str(uid)}_{device}',
             state='online',
             access_time=datetime.now()
         )
@@ -199,11 +203,11 @@ def get_access_token():
         # 若相同类型设备的状态为online,则将其踢下线
         if login_list[0].state == 'online' and login_list[0].device == device:
             # 将旧设备踢下线
-            mq_conn.send(f'{queue_listener}', 'logout')
+            send_message_with_logout(queue_listener)
         # 新设备上线
         _login = db.session.query(Login).filter(Login.id == login_list[0].id).first()
         _login.state = 'online'
-        _login.queue_listener = uuid.uuid1()
+        _login.queue_listener = f'channel_{str(uid)}_{device}'
         _login.access_token = access_token
         _login.refresh_token = refresh_token
         _login.access_time = datetime.now()
@@ -237,7 +241,8 @@ def logout():
     _login.refresh_token = ''
     db.session.commit()
 
-    mq_conn.send(_login.queue_listener, 'logout')
+    # mq_conn.send(_login.queue_listener, 'logout')
+    send_message_with_logout(_login.queue_listener)
 
     return jsonify(code=Response.ok)
 
