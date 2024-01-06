@@ -296,6 +296,12 @@ def refresh():
     return jsonify(access_token=str(-1))
 
 
+@app.route('/user/getInfo', methods=['POST'], endpoint='/user/getInfo')
+@jwt_required(locations=["headers"])
+def get_user_by_token():
+    pass
+
+
 if __name__ == '__main__':
     port = int(cfg['server']['port'])
     server = pywsgi.WSGIServer(('0.0.0.0', port), app)
