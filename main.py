@@ -6,16 +6,12 @@ from datetime import datetime, timedelta
 import yaml
 import requests
 from flask import Flask, render_template, request, jsonify
-import uuid
 import stomp
 
 from gevent import pywsgi
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import (JWTManager, jwt_required, create_access_token, get_jwt_identity, set_access_cookies,
                                 create_refresh_token, unset_jwt_cookies, decode_token)
-
-from flask_apscheduler import APScheduler
-
 from response_code import Response
 
 app = Flask(__name__)
@@ -40,10 +36,6 @@ mq_host = cfg['message']['host']
 mq_port = int(cfg['message']['port'])
 mq_conn = stomp.Connection([(mq_host, mq_port)])
 mq_conn.connect()
-
-app.config['SCHEDULER_API_ENABLED'] = True
-scheduler = APScheduler()
-scheduler.init_app(app)
 
 
 class User(db.Model):
@@ -70,6 +62,7 @@ class Role(db.Model):
 
     id = db.Column('ID', db.Integer, primary_key=True)
     name = db.Column('Name', db.String)
+    rank = db.Column('Rank', db.Integer)
 
 
 class Login(db.Model):
@@ -84,6 +77,24 @@ class Login(db.Model):
     refresh_time = db.Column('RefreshTime', db.DateTime)
     device = db.Column('Device', db.String)
     queue_listener = db.Column('QueueListener', db.String)
+
+
+class WareHouse(db.Model):
+    __tablename__ = 't_warehouse'
+
+    id = db.Column('ID', db.Integer, primary_key=True)
+    name = db.Column('Name', db.String)
+    position = db.Column('Position', db.String)
+
+
+class AdministratorOfWareHouse(db.Model):
+    __tablename__ = 't_warehouse_administrator'
+
+    id = db.Column('ID', db.Integer, primary_key=True)
+    administrator = db.Column('Administrator', db.Integer)
+    role = db.Column('Role', db.String)
+    warehouse = db.Column('Warehouse', db.String)
+    is_master = db.Column('IS_Master', db.String)
 
 
 def send_message_with_logout(queue_listener):
@@ -307,6 +318,160 @@ def get_user_by_token():
         return jsonify(code=Response.not_found_user)
 
     return jsonify(code=Response.ok, name=user.name)
+
+
+@app.route('/user/page/user', methods=['GET'], endpoint='user_page')
+def user_page():
+    return render_template("./user_management.html")
+
+
+@app.route('/user/pages', endpoint="get_page_list")
+@jwt_required(locations=["query_string"])
+def get_page_list():
+    identity = get_jwt_identity()
+    uid = identity.get('uid')
+
+    result = {
+        "homeInfo": {
+            "title": "首页",
+            "href": "static/layui/page/welcome-1.html?t=1"
+        },
+        "logoInfo": {
+            "title": "三电仓库",
+            "image": "static/layui/images/logo.png",
+            "href": ""
+        }
+    }
+
+    user = db.session.query(User).filter(User.id == uid).first()
+    role = db.session.query(Role).filter(Role.id == user.role).first()
+    rank = role.rank
+    if rank <= 2:
+        pages = ['user/all', 'spare/all', 'stock/all']
+    elif rank == 3:
+        pages = ['spare/query', 'stock/apply']
+    else:
+        pages = []
+
+    menuInfo = []
+    for item in pages:
+        classify, sys_it = item.split('/')[0], item.split('/')[1]
+        if classify == 'user':
+            menuInfo_child = {
+                "title": "用户管理",
+                "icon": "fa fa-address-book",
+                "href": "",
+                "target": "_self",
+                "child": [
+                    {
+                        "title": "用户列表",
+                        "href": "",
+                        "icon": "fa fa-home",
+                        "target": "_self"
+                    }
+                ]
+            }
+            menuInfo.append(menuInfo_child)
+
+        if classify == "spare":
+            menuInfo_child = {
+                "title": "备件管理",
+                "icon": "fa fa-lemon-o",
+                "href": "",
+                "target": "_self",
+                "child": []
+            }
+
+            menuInfo_child["child"].append({
+                "title": "备件查询",
+                "href": "page/icon-picker.html",
+                "icon": "fa fa-adn",
+                "target": "_self"
+            })
+            menuInfo_child["child"].append({
+                "title": "盘库",
+                "href": "page/icon-picker.html",
+                "icon": "fa fa-adn",
+                "target": "_self"
+            })
+
+            if sys_it == "all":
+                menuInfo_child["child"].append({
+                    "title": "备件录入",
+                    "href": "page/icon.html",
+                    "icon": "fa fa-dot-circle-o",
+                    "target": "_self"
+                })
+            menuInfo.append(menuInfo_child)
+
+        if classify == "stock":
+            menuInfo_child = {
+                "title": "库存管理",
+                "icon": "fa fa-slideshare",
+                "href": "",
+                "target": "_self",
+                "child": [
+                    {
+                        "title": "备件使用申请",
+                        "href": "page/error.html",
+                        "icon": "fa fa-superpowers",
+                        "target": "_self"
+                    }
+                ]
+            }
+
+            if sys_it == "all":
+                menuInfo_child["child"].append({
+                    "title": "仓库管理",
+                    "href": "",
+                    "icon": "fa fa-meetup",
+                    "target": "_self"
+                })
+                menuInfo_child["child"].append({
+                    "title": "货架管理",
+                    "href": "",
+                    "icon": "fa fa-meetup",
+                    "target": "_self"
+                })
+
+                warehouse_page_list = []
+                warehouse_list = db.session.query(WareHouse).all()
+                if len(warehouse_list) != 0:
+                    if rank <= 2:
+                        for warehouse in warehouse_list:
+                            warehouse_page_list.append({
+                                "title": warehouse.name,
+                                "href": "",
+                                "icon": "fa fa-meetup",
+                                "target": "_self"
+                            })
+                    elif rank == 3:
+                        result_proxy = db.session.query(f"SELECT warehouse.* "
+                                                        "FROM t_warehouse_administrator administrator_of_warehouse "
+                                                        "JOIN t_warehouse warehouse "
+                                                        "ON administrator_of_warehouse.Warehouse = warehouse.ID "
+                                                        f"WHERE administrator_of_warehouse.Administrator = {uid}")
+                        res = result_proxy.fetchall()
+                        for it in res:
+                            warehouse_page_list.append({
+                                "title": it[1],
+                                "href": "",
+                                "icon": "fa fa-meetup",
+                                "target": "_self"
+                            })
+
+                menuInfo_child["child"].append({
+                    "title": "出入库管理",
+                    "href": "page/error.html",
+                    "icon": "fa fa-superpowers",
+                    "target": "_self",
+                    "child": warehouse_page_list
+                })
+            menuInfo.append(menuInfo_child)
+
+    result["menuInfo"] = menuInfo
+
+    return jsonify(result)
 
 
 if __name__ == '__main__':
