@@ -299,7 +299,14 @@ def refresh():
 @app.route('/user/getInfo', methods=['POST'], endpoint='/user/getInfo')
 @jwt_required(locations=["headers"])
 def get_user_by_token():
-    pass
+    identity = get_jwt_identity()
+    uid = identity.get('uid')
+
+    user = db.session.query(User).filter(User.id == uid).first()
+    if user is None:
+        return jsonify(code=Response.not_found_user)
+
+    return jsonify(code=Response.ok, name=user.name)
 
 
 if __name__ == '__main__':
