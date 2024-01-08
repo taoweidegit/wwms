@@ -121,8 +121,10 @@
             miniAdmin = layui.miniAdmin,
             miniTongji = layui.miniTongji;
 
+        let iniUrl = '{{ url_for('get_page_list') }}?jwt=' + localStorage.getItem("access_key")
         var options = {
-            iniUrl: "{{ url_for('static', filename = 'layui/api/init.json') }}",    // 初始化接口
+<!--            iniUrl: "{{ url_for('static', filename = 'layui/api/init.json') }}",    // 初始化接口-->
+            iniUrl: iniUrl,
             clearUrl: "{{ url_for('static', filename = 'layui/api/clear.json') }}", // 缓存清理接口
             urlHashLocation: true,      // 是否打开hash定位
             bgColorDefault: false,      // 主题默认配置
@@ -251,8 +253,8 @@
                             data: JSON.stringify({refresh_token: localStorage.getItem('refresh_key')}),
                             contentType:'application/json',
                             success: function(data){
-                                if(data.access_token != '-1')
-                                    localStorage.setItem('access_key', data.access_token);
+                                localStorage.setItem('access_key', data.access_token);
+                                window.location.reload();
                             },
                         });
                     }

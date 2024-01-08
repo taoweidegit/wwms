@@ -299,12 +299,12 @@ def refresh():
 
     # 写入数据库
     _login = db.session.query(Login).filter(Login.user == uid, Login.device == device).first()
-    if _login.state != 'logout':
-        _login.access_token = access_token
-        _login.refresh_time = datetime.now()
-        db.session.commit()
-        return jsonify(access_token=access_token)
-    return jsonify(access_token=str(-1))
+    # if _login.state != 'logout':
+    _login.access_token = access_token
+    _login.refresh_time = datetime.now()
+    db.session.commit()
+    return jsonify(access_token=access_token)
+    # return jsonify(access_token=str(-1))
 
 
 @app.route('/user/getInfo', methods=['POST'], endpoint='/user/getInfo')
@@ -359,14 +359,14 @@ def get_page_list():
         if classify == 'user':
             menuInfo_child = {
                 "title": "用户管理",
-                "icon": "fa fa-address-book",
+                "icon": "fa fa-user-circle",
                 "href": "",
                 "target": "_self",
                 "child": [
                     {
                         "title": "用户列表",
-                        "href": "",
-                        "icon": "fa fa-home",
+                        "href": f"{request.host_url}user/page/user",
+                        "icon": "fa fa-user-circle",
                         "target": "_self"
                     }
                 ]
@@ -472,6 +472,43 @@ def get_page_list():
     result["menuInfo"] = menuInfo
 
     return jsonify(result)
+
+
+@app.route('/user/getUserList', endpoint="get_user_list")
+def get_user_list():
+    user_list = list()
+
+    sql = ('SELECT u.ID AS id, '
+           'u.`Name` as name, '
+           'u.Eid as eid, '
+           'u.Wx_id as wx_id, '
+           'department.`Name` as department, '
+           'role.`Name` as role '
+           'FROM t_user u '
+           'JOIN t_department department ON u.Department = department.ID '
+           'JOIN t_role role ON u.Role = role.ID')
+    result_proxy = db.session.query(sql)
+    result = result_proxy.fetchall()
+    for it in result:
+        user = {
+            "id": it[0],
+            "name": it[1],
+            "employee_id": it[2],
+            "wechat_id": it[3],
+            "department_name": it[4],
+            "role_name": it[5]
+        }
+
+        user_list.append(user)
+
+    response = {
+        "code": 0,
+        "msg": "",
+        "count": 1000,
+        "data": user_list
+    }
+
+    return jsonify(response)
 
 
 if __name__ == '__main__':
