@@ -26,7 +26,11 @@
                         <div class="layui-inline">
                             <label class="layui-form-label">部门</label>
                             <div class="layui-input-inline">
-                                <select name="department" class="layui-input" lay-filter="department"></select>
+                                <select id="form_select" name="department" class="layui-input">
+                                    {% for department in department_list %}
+                                        <option value="{{ department.id }}">{{ department.name }}</option>
+                                    {% endfor %}
+                                </select>
                             </div>
                         </div>
                         <div class="layui-inline">
@@ -79,9 +83,6 @@
             page: true,
             skin: 'line'
         });
-
-        // 初始化form中的select
-
 
         // 监听搜索操作
         form.on('submit(data-search-btn)', function (data) {

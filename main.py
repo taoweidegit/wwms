@@ -324,7 +324,14 @@ def get_user_by_token():
 
 @app.route('/user/page/user', methods=['GET'], endpoint='user_page')
 def user_page():
-    return render_template("./user_management.html")
+    department_list = db.session.query(Department).all()
+    lst = []
+    for department in department_list:
+        lst.append({
+            'id': department.id,
+            'name': department.name
+        })
+    return render_template("./user_management.html", department_list=lst)
 
 
 @app.route('/user/pages', endpoint="get_page_list")
@@ -473,6 +480,18 @@ def get_page_list():
     result["menuInfo"] = menuInfo
 
     return jsonify(result)
+
+
+@app.route('/department/get', endpoint="get_department_list")
+def get_department_list():
+    department_list = db.session.query(Department).all()
+    response = []
+    for department in department_list:
+        response.append({
+            'id': department.id,
+            'name': department.name
+        })
+    return jsonify(response)
 
 
 @app.route('/user/getUserList', endpoint="get_user_list")
