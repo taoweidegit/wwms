@@ -12,6 +12,8 @@ from gevent import pywsgi
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import (JWTManager, jwt_required, create_access_token, get_jwt_identity, set_access_cookies,
                                 create_refresh_token, unset_jwt_cookies, decode_token)
+from sqlalchemy import text
+
 from response_code import Response
 
 app = Flask(__name__)
@@ -446,12 +448,11 @@ def get_page_list():
                                 "target": "_self"
                             })
                     elif rank == 3:
-                        result_proxy = db.session.query(f"SELECT warehouse.* "
-                                                        "FROM t_warehouse_administrator administrator_of_warehouse "
-                                                        "JOIN t_warehouse warehouse "
-                                                        "ON administrator_of_warehouse.Warehouse = warehouse.ID "
-                                                        f"WHERE administrator_of_warehouse.Administrator = {uid}")
-                        res = result_proxy.fetchall()
+                        res = db.session.execute(f"SELECT warehouse.* "
+                                                 "FROM t_warehouse_administrator administrator_of_warehouse "
+                                                 "JOIN t_warehouse warehouse "
+                                                 "ON administrator_of_warehouse.Warehouse = warehouse.ID "
+                                                 f"WHERE administrator_of_warehouse.Administrator = {uid}")
                         for it in res:
                             warehouse_page_list.append({
                                 "title": it[1],
@@ -478,17 +479,16 @@ def get_page_list():
 def get_user_list():
     user_list = list()
 
-    sql = ('SELECT u.ID AS id, '
-           'u.`Name` as name, '
-           'u.Eid as eid, '
-           'u.Wx_id as wx_id, '
-           'department.`Name` as department, '
-           'role.`Name` as role '
-           'FROM t_user u '
-           'JOIN t_department department ON u.Department = department.ID '
-           'JOIN t_role role ON u.Role = role.ID')
-    result_proxy = db.session.query(sql)
-    result = result_proxy.fetchall()
+    sql = text('SELECT u.ID AS id, '
+               'u.`Name` as name, '
+               'u.Eid as eid, '
+               'u.Wx_id as wx_id, '
+               'department.`Name` as department, '
+               'role.`Name` as role '
+               'FROM t_user u '
+               'JOIN t_department department ON u.Department = department.ID '
+               'JOIN t_role role ON u.Role = role.ID')
+    result = db.session.execute(sql)
     for it in result:
         user = {
             "id": it[0],
@@ -504,7 +504,7 @@ def get_user_list():
     response = {
         "code": 0,
         "msg": "",
-        "count": 1000,
+        "count": len(user_list),
         "data": user_list
     }
 
