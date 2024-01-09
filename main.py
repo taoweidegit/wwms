@@ -477,17 +477,45 @@ def get_page_list():
 
 @app.route('/user/getUserList', endpoint="get_user_list")
 def get_user_list():
+    page = 1 if request.args.get("page") is None else int(request.args.get("page"))
+    limit = 10 if request.args.get("limit") is None else int(request.args.get("limit"))
+
+    department_id = request.args.get("department")
+    user_name = request.args.get("username")
+
     user_list = list()
 
-    sql = text('SELECT u.ID AS id, '
-               'u.`Name` as name, '
-               'u.Eid as eid, '
-               'u.Wx_id as wx_id, '
-               'department.`Name` as department, '
-               'role.`Name` as role '
-               'FROM t_user u '
-               'JOIN t_department department ON u.Department = department.ID '
-               'JOIN t_role role ON u.Role = role.ID')
+    sql = ('SELECT u.ID AS id, '
+           'u.`Name` as name, '
+           'u.Eid as eid, '
+           'u.Wx_id as wx_id, '
+           'department.`Name` as department, '
+           'role.`Name` as role '
+           'FROM t_user u '
+           'JOIN t_department department ON u.Department = department.ID '
+           'JOIN t_role role ON u.Role = role.ID')
+
+    # 是否添加 WHERE 和 AND
+    temp = [department_id, user_name]
+    is_add_and = False
+    count = 0
+    for i in range(len(temp)):
+        if temp[i] is not None:
+            count += 1
+    if count > 0:
+        sql += ' WHERE '
+    if count > 1:
+        is_add_and = True
+
+    if department_id is not None:
+        sql += f'department.ID = {department_id}'
+
+    if user_name is not None:
+        if is_add_and:
+            sql += ' AND '
+        sql += f'u.`Name` = {user_name}'
+
+    sql = text(sql)
     result = db.session.execute(sql)
     for it in result:
         user = {
@@ -501,11 +529,18 @@ def get_user_list():
 
         user_list.append(user)
 
+    # 分页
+    total = len(user_list)
+    num_pages = int(total / limit) + 1
+    start = (page - 1) * limit
+    end = min(page * limit, total)
+    page_data = user_list[start:end]
+
     response = {
         "code": 0,
         "msg": "",
-        "count": len(user_list),
-        "data": user_list
+        "count": num_pages,
+        "data": page_data
     }
 
     return jsonify(response)
