@@ -92,12 +92,12 @@
             });
 
             //执行搜索重载
-            table.reload('currentTableId', {
+            table.reload('user_table', {
                 page: {
                     curr: 1
                 },
                 where: {
-                    searchParams: result
+                    searchParams: result,
                 }
             }, 'data');
 

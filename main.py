@@ -499,8 +499,13 @@ def get_user_list():
     page = 1 if request.args.get("page") is None else int(request.args.get("page"))
     limit = 10 if request.args.get("limit") is None else int(request.args.get("limit"))
 
-    department_id = request.args.get("department")
-    user_name = request.args.get("username")
+    data = json.loads(request.args.get("searchParams"))
+    department_id = data["department"]
+    user_name = data["username"]
+    if department_id == '':
+        department_id = None
+    if user_name == '':
+        user_name = None
 
     user_list = list()
 
@@ -532,7 +537,7 @@ def get_user_list():
     if user_name is not None:
         if is_add_and:
             sql += ' AND '
-        sql += f'u.`Name` = {user_name}'
+        sql += f"u.`Name` = '{user_name}'"
 
     sql = text(sql)
     result = db.session.execute(sql)
