@@ -499,9 +499,14 @@ def get_user_list():
     page = 1 if request.args.get("page") is None else int(request.args.get("page"))
     limit = 10 if request.args.get("limit") is None else int(request.args.get("limit"))
 
-    data = json.loads(request.args.get("searchParams"))
-    department_id = data["department"]
-    user_name = data["username"]
+    if request.args.get("searchParams") is None:
+        department_id = None
+        user_name = None
+    else:
+        data = json.loads(request.args.get("searchParams"))
+        department_id = data["department"]
+        user_name = data["username"]
+
     if department_id == '':
         department_id = None
     if user_name == '':
@@ -568,6 +573,11 @@ def get_user_list():
     }
 
     return jsonify(response)
+
+
+@app.route('/user/page/adding', endpoint="adding_user_page")
+def user_adding_page():
+    return render_template("./add_or_edit_user.html")
 
 
 if __name__ == '__main__':
