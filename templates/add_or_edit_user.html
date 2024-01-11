@@ -17,34 +17,47 @@
 <body>
 <div class="layui-form layuimini-form">
     <div class="layui-form-item">
-        <label class="layui-form-label required">用户名</label>
+        <label class="layui-form-label required">姓名</label>
         <div class="layui-input-block">
-            <input type="text" name="username" lay-verify="required" lay-reqtext="用户名不能为空" placeholder="请输入用户名" value="" class="layui-input">
-            <tip>填写自己管理账号的名称。</tip>
+            <input type="text" name="username" lay-verify="required" lay-reqtext="姓名不能为空" placeholder="请输入姓名" value="" class="layui-input">
         </div>
     </div>
     <div class="layui-form-item">
         <label class="layui-form-label required">手机</label>
         <div class="layui-input-block">
-            <input type="number" name="phone" lay-verify="required" lay-reqtext="手机不能为空" placeholder="请输入手机" value="" class="layui-input">
+            <input type="text" name="phone" lay-verify="required" lay-reqtext="手机不能为空" placeholder="请输入手机" value="" class="layui-input">
         </div>
     </div>
     <div class="layui-form-item">
-        <label class="layui-form-label">邮箱</label>
+        <label class="layui-form-label">部门</label>
         <div class="layui-input-block">
-            <input type="email" name="email" placeholder="请输入邮箱" value="" class="layui-input">
+            <select name="department" lay-verify="required">
+                {% for department in department_list %}
+                    <option value="{{ department.id }}">{{ department.name }}</option>
+                {% endfor %}
+            </select>
         </div>
     </div>
     <div class="layui-form-item">
-        <label class="layui-form-label">职业</label>
+        <label class="layui-form-label">职位</label>
         <div class="layui-input-block">
-            <input type="text" name="work" placeholder="请输入职业" value="" class="layui-input">
+            <select name="role" lay-verify="required">
+                {% for role in role_list %}
+                    <option value="{{ role.id }}">{{ role.name }}</option>
+                {% endfor %}
+            </select>
         </div>
     </div>
-    <div class="layui-form-item layui-form-text">
-        <label class="layui-form-label">备注信息</label>
+    <div class="layui-form-item">
+        <label class="layui-form-label">是否管理仓库</label>
         <div class="layui-input-block">
-            <textarea name="remark" class="layui-textarea" placeholder="请输入备注信息"></textarea>
+            <input type="checkbox" name="is_warehouse_admin" lay-skin="switch" lay-filter="warehouse_admin_switch" title="是否管理仓库">
+        </div>
+    </div>
+    <div id="warehouse_div" class="layui-form-item layui-form-text" style="display:none">
+        <label class="layui-form-label">仓库</label>
+        <div class="layui-input-block">
+            <input id="warehouse" type="text" name="warehouse" class="layui-input">
         </div>
     </div>
 
@@ -55,11 +68,51 @@
     </div>
 </div>
 <script src="{{ url_for('static', filename = 'layui/lib/layui-v2.6.3/layui.js') }}" charset="utf-8"></script>
+<script src="{{ url_for('static', filename = 'layui/js/lay-config.js') }}" charset="utf-8"></script>
 <script>
-    layui.use(['form'], function () {
+    layui.use(['form', 'tableSelect'], function () {
         var form = layui.form,
             layer = layui.layer,
+            tableSelect = layui.tableSelect,
             $ = layui.$;
+
+        tableSelect.render({
+            elem: '#warehouse',
+<!--            searchKey: 'my',-->
+            checkedKey: 'id',
+<!--            searchPlaceholder: '',-->
+            table: {
+                url: '{{ url_for('get_warehouse_list') }}',
+                cols: [[
+                    { type: 'checkbox' },
+                    { field: 'id', title: 'ID', width: 100 },
+                    { field: 'name', title: '姓名', width: 300 },
+                    { field: 'place', title: '地点', width: 300 }
+                ]]
+            },
+            done: function (elem, data) {
+                var NEWJSON = []
+                layui.each(data.data, function (index, item) {
+                    NEWJSON.push(item.name)
+                })
+
+                no_warehouse = false
+                for (var i = 0; i < NEWJSON.length; i++)
+                    if(NEWJSON[i] == '无')
+                        no_warehouse = true
+                if (!no_warehouse)
+                    elem.val(NEWJSON.join(","))
+                else
+                    elem.val("无")
+            }
+        });
+
+        form.on('switch(warehouse_admin_switch)', function (data) {
+            if (this.checked)
+                $("#warehouse_div").attr("style", "display: block")
+            else
+                $("#warehouse_div").attr("style", "display: none")
+        });
 
         //监听提交
         form.on('submit(saveBtn)', function (data) {

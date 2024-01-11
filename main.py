@@ -577,7 +577,49 @@ def get_user_list():
 
 @app.route('/user/page/adding', endpoint="adding_user_page")
 def user_adding_page():
-    return render_template("./add_or_edit_user.html")
+    department_list = db.session.query(Department).all()
+    department_item = []
+    for it in department_list:
+        department_item.append({
+            "id": it.id,
+            "name": it.name
+        })
+
+    role_list = db.session.query(Role).all()
+    role_item = []
+    for it in role_list:
+        role_item.append({
+            "id": it.id,
+            "name": it.name
+        })
+
+    return render_template("./add_or_edit_user.html",
+                           department_list=department_item,
+                           role_list=role_item)
+
+
+@app.route('/warehouse/get', endpoint="get_warehouse_list")
+def get_warehouse():
+    warehouse_list = db.session.query(WareHouse).all()
+    data = [{
+        "id": -1,
+        "name": "无",
+        "place": "无"
+    }]
+    for warehouse in warehouse_list:
+        data.append({
+            "id": warehouse.id,
+            "name": warehouse.name,
+            "place": warehouse.position
+        })
+
+    response = {
+        "code": 0,
+        "msg": "",
+        "count": len(data),
+        "data": data
+    }
+    return jsonify(response)
 
 
 if __name__ == '__main__':
