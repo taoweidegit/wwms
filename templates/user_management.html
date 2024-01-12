@@ -62,7 +62,7 @@
 
         table.render({
             elem: '#user_table',
-            url: '{{ url_for('get_user_list') }}',
+            url: '{{ url_for('/user/get_user_list') }}',
             toolbar: '#toolbar',
             defaultToolbar: ['filter', 'exports', 'print', {
                 title: '提示',

@@ -49,7 +49,7 @@
         </div>
     </div>
     <div class="layui-form-item">
-        <label class="layui-form-label">是否管理仓库</label>
+        <label class="layui-form-label">是否管理仓库(出库)</label>
         <div class="layui-input-block">
             <input type="checkbox" name="is_warehouse_admin" lay-skin="switch" lay-filter="warehouse_admin_switch" title="是否管理仓库">
         </div>
@@ -76,13 +76,15 @@
             tableSelect = layui.tableSelect,
             $ = layui.$;
 
+        var warehouse_management_user_id = []
+
         tableSelect.render({
             elem: '#warehouse',
 <!--            searchKey: 'my',-->
             checkedKey: 'id',
 <!--            searchPlaceholder: '',-->
             table: {
-                url: '{{ url_for('get_warehouse_list') }}',
+                url: '{{ url_for('/warehouse/get_warehouse_list') }}',
                 cols: [[
                     { type: 'checkbox' },
                     { field: 'id', title: 'ID', width: 100 },
@@ -94,6 +96,7 @@
                 var NEWJSON = []
                 layui.each(data.data, function (index, item) {
                     NEWJSON.push(item.name)
+                    warehouse_management_user_id.push(item.id)
                 })
 
                 no_warehouse = false
@@ -116,7 +119,18 @@
 
         //监听提交
         form.on('submit(saveBtn)', function (data) {
-            var index = layer.alert(JSON.stringify(data.field), {
+            post_data = data.field
+            post_data.warehouse = warehouse_management_user_id
+            // post
+            $.ajax({
+                type: "POST",
+                url: "{{ url_for('/user/add_user') }}",
+                data: JSON.stringify(post_data),
+                success: function(result) {
+
+                }
+            });
+            var index = layer.alert(JSON.stringify(post_data), {
                 title: '最终的提交信息'
             }, function () {
 

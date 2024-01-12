@@ -482,7 +482,7 @@ def get_page_list():
     return jsonify(result)
 
 
-@app.route('/department/get', endpoint="get_department_list")
+@app.route('/department/get', endpoint="/department/get_department_list")
 def get_department_list():
     department_list = db.session.query(Department).all()
     response = []
@@ -494,7 +494,7 @@ def get_department_list():
     return jsonify(response)
 
 
-@app.route('/user/getUserList', endpoint="get_user_list")
+@app.route('/user/getUserList', endpoint="/user/get_user_list")
 def get_user_list():
     page = 1 if request.args.get("page") is None else int(request.args.get("page"))
     limit = 10 if request.args.get("limit") is None else int(request.args.get("limit"))
@@ -598,7 +598,7 @@ def user_adding_page():
                            role_list=role_item)
 
 
-@app.route('/warehouse/get', endpoint="get_warehouse_list")
+@app.route('/warehouse/get', endpoint="/warehouse/get_warehouse_list")
 def get_warehouse():
     warehouse_list = db.session.query(WareHouse).all()
     data = [{
@@ -620,6 +620,11 @@ def get_warehouse():
         "data": data
     }
     return jsonify(response)
+
+
+@app.route('/user/add', endpoint="/user/add_user")
+def add_user():
+    return jsonify(code=Response.ok)
 
 
 if __name__ == '__main__':
