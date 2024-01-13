@@ -29,6 +29,12 @@
         </div>
     </div>
     <div class="layui-form-item">
+        <label class="layui-form-label required">工号</label>
+        <div class="layui-input-block">
+            <input type="text" name="eid" lay-verify="required" lay-reqtext="工号不能为空" placeholder="请输入工号" value="" class="layui-input">
+        </div>
+    </div>
+    <div class="layui-form-item">
         <label class="layui-form-label">部门</label>
         <div class="layui-input-block">
             <select name="department" lay-verify="required">
@@ -126,6 +132,7 @@
                 type: "POST",
                 url: "{{ url_for('/user/add_user') }}",
                 data: JSON.stringify(post_data),
+                contentType: "application/json",
                 success: function(result) {
 
                 }

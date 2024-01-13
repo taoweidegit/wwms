@@ -622,8 +622,16 @@ def get_warehouse():
     return jsonify(response)
 
 
-@app.route('/user/add', endpoint="/user/add_user")
+@app.route('/user/add', methods=["POST"], endpoint="/user/add_user")
 def add_user():
+    username = request.json.get("username")
+    phone = request.json.get("phone")
+    eid = request.json.get("eid")
+    department = int(request.json.get("department"))
+    role = int(request.json.get("role"))
+    is_warehouse_admin = request.json.get("is_warehouse_admin")
+    warehouse = request.json.get("warehouse")
+    print(len(warehouse))
     return jsonify(code=Response.ok)
 
 
