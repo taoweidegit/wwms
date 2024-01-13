@@ -104,15 +104,7 @@
                     NEWJSON.push(item.name)
                     warehouse_management_user_id.push(item.id)
                 })
-
-                no_warehouse = false
-                for (var i = 0; i < NEWJSON.length; i++)
-                    if(NEWJSON[i] == '无')
-                        no_warehouse = true
-                if (!no_warehouse)
-                    elem.val(NEWJSON.join(","))
-                else
-                    elem.val("无")
+                elem.val(NEWJSON.join(","))
             }
         });
 
@@ -130,25 +122,22 @@
             // post
             $.ajax({
                 type: "POST",
-                url: "{{ url_for('/user/add_user') }}",
+                url: "{{ url_for('/user/add_or_edit_user') }}",
                 data: JSON.stringify(post_data),
                 contentType: "application/json",
                 success: function(result) {
 
                 }
             });
-            var index = layer.alert(JSON.stringify(post_data), {
-                title: '最终的提交信息'
+            var index = layer.alert('提交成功', {
+                title: '提交成功'
             }, function () {
-
                 // 关闭弹出层
                 layer.close(index);
 
                 var iframeIndex = parent.layer.getFrameIndex(window.name);
                 parent.layer.close(iframeIndex);
-
             });
-
             return false;
         });
 

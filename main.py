@@ -601,11 +601,7 @@ def user_adding_page():
 @app.route('/warehouse/get', endpoint="/warehouse/get_warehouse_list")
 def get_warehouse():
     warehouse_list = db.session.query(WareHouse).all()
-    data = [{
-        "id": -1,
-        "name": "无",
-        "place": "无"
-    }]
+    data = list()
     for warehouse in warehouse_list:
         data.append({
             "id": warehouse.id,
@@ -622,7 +618,7 @@ def get_warehouse():
     return jsonify(response)
 
 
-@app.route('/user/add', methods=["POST"], endpoint="/user/add_user")
+@app.route('/user/add', methods=["POST"], endpoint="/user/add_or_edit_user")
 def add_user():
     username = request.json.get("username")
     phone = request.json.get("phone")
@@ -631,7 +627,38 @@ def add_user():
     role = int(request.json.get("role"))
     is_warehouse_admin = request.json.get("is_warehouse_admin")
     warehouse = request.json.get("warehouse")
-    print(len(warehouse))
+
+    user = db.session.query(User).filter(User.employee_id == eid).first()
+
+    is_add = user is None
+    if user is None:
+        user = User()
+
+    user.employee_id = eid
+    user.mobile = phone
+    user.name = username
+    user.role = role
+    user.department = department
+
+    if is_add:
+        db.session.add(user)
+    db.session.commit()
+
+    if is_warehouse_admin == 'on':
+        admin_of_warehouse = (db.session.query(AdministratorOfWareHouse)
+                              .filter(AdministratorOfWareHouse.administrator == user.id).all())
+        managed_warehouse_id = [int(it.id) for it in admin_of_warehouse]
+        for it in warehouse:
+            if int(it) in managed_warehouse_id:
+                continue
+            aw = AdministratorOfWareHouse()
+            aw.warehouse = it
+            aw.administrator = user.id
+            aw.role = 'outbound'
+            aw.is_master = 'N'
+            db.session.add(aw)
+            db.session.commit()
+
     return jsonify(code=Response.ok)
 
 
