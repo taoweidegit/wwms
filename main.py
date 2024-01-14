@@ -709,6 +709,7 @@ def warehouse_page():
     for rank in result:
         if rank[0] <= 1:
             mode = "add_warehouse"
+            break
 
     return render_template("./warehouse_management.html", mode=mode)
 
