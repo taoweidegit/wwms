@@ -707,7 +707,7 @@ def warehouse_page():
     mode = ""
 
     for rank in result:
-        if rank[0] <= 1:
+        if rank[0] <= 0:
             mode = "add_warehouse"
             break
 

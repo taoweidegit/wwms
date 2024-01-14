@@ -14,7 +14,9 @@
     <div class="layuimini-main">
         <script type="text/html" id="toolbar">
             <div class="layui-btn-container">
-                <button class="layui-btn layui-btn-normal layui-btn-sm data-add-btn" lay-event="add"> 添加 </button>
+                {% if mode == 'add_warehouse' %}
+                    <button class="layui-btn layui-btn-normal layui-btn-sm data-add-btn" lay-event="add"> 添加 </button>
+                {% endif %}
                 <button class="layui-btn layui-btn-primary layui-btn-sm data-refresh-btn" lay-event="refresh"> 刷新 </button>
             </div>
         </script>
