@@ -44,6 +44,7 @@
         <script type="text/html" id="toolbar">
             <div class="layui-btn-container">
                 <button class="layui-btn layui-btn-normal layui-btn-sm data-add-btn" lay-event="add"> 添加 </button>
+                <button class="layui-btn layui-btn-primary layui-btn-sm data-refresh-btn" lay-event="refresh"> 刷新 </button>
             </div>
         </script>
         <table class="layui-hide" id="user_table" lay-filter="currentTableFilter"></table>
@@ -64,11 +65,6 @@
             elem: '#user_table',
             url: '{{ url_for('/user/get_user_list') }}',
             toolbar: '#toolbar',
-            defaultToolbar: ['filter', 'exports', 'print', {
-                title: '提示',
-                layEvent: 'LAYTABLE_TIPS',
-                icon: 'layui-icon-tips'
-            }],
             cols: [[
 <!--                {type: "checkbox", width: 50},-->
                 {field: 'id', width: 200, title: 'ID', hide: true},
@@ -106,7 +102,9 @@
 
         // 添加用户
         table.on('toolbar(currentTableFilter)', function (obj) {
-            if (obj.event === 'add') {  // 监听添加操作
+            if (obj.event === 'add')
+            {
+                // 监听添加操作
                 var index = layer.open({
                     title: '添加用户',
                     type: 2,
@@ -119,6 +117,11 @@
                 $(window).on("resize", function () {
                     layer.full(index);
                 });
+            }
+            else if (obj.event === 'refresh')
+            {
+                // 刷新
+                window.location.reload()
             }
         });
 
