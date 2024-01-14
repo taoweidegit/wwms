@@ -577,12 +577,17 @@ def get_user_list():
 
 @app.route('/user/page/adding', endpoint="adding_user_page")
 def user_adding_page():
+    uid = request.values.get("uid")
+
+    mode = 'add' if uid is None else 'edit'
+
     department_list = db.session.query(Department).all()
     department_item = []
     for it in department_list:
         department_item.append({
             "id": it.id,
-            "name": it.name
+            "name": it.name,
+            "selected": ""
         })
 
     role_list = db.session.query(Role).all()
@@ -590,10 +595,34 @@ def user_adding_page():
     for it in role_list:
         role_item.append({
             "id": it.id,
-            "name": it.name
+            "name": it.name,
+            "selected": ""
         })
 
+    if uid is not None:
+        user = db.session.query(User).filter(User.id == uid).first()
+        user_response = {
+            "name": user.name,
+            "mobile": user.mobile,
+            "eid": user.employee_id
+        }
+        for i in range(len(department_item)):
+            if int(department_item[i]["id"]) == int(user.department):
+                department_item[i]["selected"] = "selected"
+                break
+        for i in range(len(role_item)):
+            if int(role_item[i]["id"]) == int(user.role):
+                role_item[i]["selected"] = "selected"
+                break
+    else:
+        user_response = {
+            "name": "",
+            "mobile": "",
+            "eid": ""
+        }
     return render_template("./add_or_edit_user.html",
+                           mode=mode,
+                           user_response=user_response,
                            department_list=department_item,
                            role_list=role_item)
 
@@ -644,20 +673,21 @@ def add_user():
         db.session.add(user)
     db.session.commit()
 
-    if is_warehouse_admin == 'on':
-        admin_of_warehouse = (db.session.query(AdministratorOfWareHouse)
-                              .filter(AdministratorOfWareHouse.administrator == user.id).all())
-        managed_warehouse_id = [int(it.id) for it in admin_of_warehouse]
-        for it in warehouse:
-            if int(it) in managed_warehouse_id:
-                continue
-            aw = AdministratorOfWareHouse()
-            aw.warehouse = it
-            aw.administrator = user.id
-            aw.role = 'outbound'
-            aw.is_master = 'N'
-            db.session.add(aw)
-            db.session.commit()
+    if is_warehouse_admin is not None:
+        if is_warehouse_admin == 'on':
+            admin_of_warehouse = (db.session.query(AdministratorOfWareHouse)
+                                  .filter(AdministratorOfWareHouse.administrator == user.id).all())
+            managed_warehouse_id = [int(it.id) for it in admin_of_warehouse]
+            for it in warehouse:
+                if int(it) in managed_warehouse_id:
+                    continue
+                aw = AdministratorOfWareHouse()
+                aw.warehouse = it
+                aw.administrator = user.id
+                aw.role = 'outbound'
+                aw.is_master = 'N'
+                db.session.add(aw)
+                db.session.commit()
 
     return jsonify(code=Response.ok)
 

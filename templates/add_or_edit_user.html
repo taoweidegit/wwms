@@ -19,19 +19,19 @@
     <div class="layui-form-item">
         <label class="layui-form-label required">姓名</label>
         <div class="layui-input-block">
-            <input type="text" name="username" lay-verify="required" lay-reqtext="姓名不能为空" placeholder="请输入姓名" value="" class="layui-input">
+            <input type="text" name="username" lay-verify="required" lay-reqtext="姓名不能为空" placeholder="请输入姓名" value="{{ user_response.name }}" class="layui-input">
         </div>
     </div>
     <div class="layui-form-item">
         <label class="layui-form-label required">手机</label>
         <div class="layui-input-block">
-            <input type="text" name="phone" lay-verify="required" lay-reqtext="手机不能为空" placeholder="请输入手机" value="" class="layui-input">
+            <input type="text" name="phone" lay-verify="required" lay-reqtext="手机不能为空" placeholder="请输入手机" value="{{ user_response.mobile }}" class="layui-input">
         </div>
     </div>
     <div class="layui-form-item">
         <label class="layui-form-label required">工号</label>
         <div class="layui-input-block">
-            <input type="text" name="eid" lay-verify="required" lay-reqtext="工号不能为空" placeholder="请输入工号" value="" class="layui-input">
+            <input type="text" name="eid" lay-verify="required" lay-reqtext="工号不能为空" placeholder="请输入工号" value="{{ user_response.eid }}" class="layui-input">
         </div>
     </div>
     <div class="layui-form-item">
@@ -39,7 +39,11 @@
         <div class="layui-input-block">
             <select name="department" lay-verify="required">
                 {% for department in department_list %}
-                    <option value="{{ department.id }}">{{ department.name }}</option>
+                    {% if department.selected == '' %}
+                        <option value="{{ department.id }}">{{ department.name }}</option>
+                    {% else %}
+                        <option value="{{ department.id }}" selected="selected">{{ department.name }}</option>
+                    {% endif %}
                 {% endfor %}
             </select>
         </div>
@@ -49,23 +53,29 @@
         <div class="layui-input-block">
             <select name="role" lay-verify="required">
                 {% for role in role_list %}
-                    <option value="{{ role.id }}">{{ role.name }}</option>
+                    {% if role.selected == '' %}
+                        <option value="{{ role.id }}">{{ role.name }}</option>
+                    {% else %}
+                        <option value="{{ role.id }}" selected="selected">{{ role.name }}</option>
+                    {% endif %}
                 {% endfor %}
             </select>
         </div>
     </div>
-    <div class="layui-form-item">
-        <label class="layui-form-label">是否管理仓库(出库)</label>
-        <div class="layui-input-block">
-            <input type="checkbox" name="is_warehouse_admin" lay-skin="switch" lay-filter="warehouse_admin_switch" title="是否管理仓库">
+    {% if mode == 'add' %}
+        <div class="layui-form-item">
+            <label class="layui-form-label">是否管理仓库(出库)</label>
+            <div class="layui-input-block">
+                <input type="checkbox" name="is_warehouse_admin" lay-skin="switch" lay-filter="warehouse_admin_switch" title="是否管理仓库">
+            </div>
         </div>
-    </div>
-    <div id="warehouse_div" class="layui-form-item layui-form-text" style="display:none">
-        <label class="layui-form-label">仓库</label>
-        <div class="layui-input-block">
-            <input id="warehouse" type="text" name="warehouse" class="layui-input">
+        <div id="warehouse_div" class="layui-form-item layui-form-text" style="display:none">
+            <label class="layui-form-label">仓库</label>
+            <div class="layui-input-block">
+                <input id="warehouse" type="text" name="warehouse" class="layui-input">
+            </div>
         </div>
-    </div>
+    {% endif %}
 
     <div class="layui-form-item">
         <div class="layui-input-block">
@@ -83,37 +93,38 @@
             $ = layui.$;
 
         var warehouse_management_user_id = []
+        {% if mode == 'add' %}
+            tableSelect.render({
+                elem: '#warehouse',
+    <!--            searchKey: 'my',-->
+                checkedKey: 'id',
+    <!--            searchPlaceholder: '',-->
+                table: {
+                    url: '{{ url_for('/warehouse/get_warehouse_list') }}',
+                    cols: [[
+                        { type: 'checkbox' },
+                        { field: 'id', title: 'ID', width: 100 },
+                        { field: 'name', title: '姓名', width: 300 },
+                        { field: 'place', title: '地点', width: 300 }
+                    ]]
+                },
+                done: function (elem, data) {
+                    var NEWJSON = []
+                    layui.each(data.data, function (index, item) {
+                        NEWJSON.push(item.name)
+                        warehouse_management_user_id.push(item.id)
+                    })
+                    elem.val(NEWJSON.join(","))
+                }
+            });
 
-        tableSelect.render({
-            elem: '#warehouse',
-<!--            searchKey: 'my',-->
-            checkedKey: 'id',
-<!--            searchPlaceholder: '',-->
-            table: {
-                url: '{{ url_for('/warehouse/get_warehouse_list') }}',
-                cols: [[
-                    { type: 'checkbox' },
-                    { field: 'id', title: 'ID', width: 100 },
-                    { field: 'name', title: '姓名', width: 300 },
-                    { field: 'place', title: '地点', width: 300 }
-                ]]
-            },
-            done: function (elem, data) {
-                var NEWJSON = []
-                layui.each(data.data, function (index, item) {
-                    NEWJSON.push(item.name)
-                    warehouse_management_user_id.push(item.id)
-                })
-                elem.val(NEWJSON.join(","))
-            }
-        });
-
-        form.on('switch(warehouse_admin_switch)', function (data) {
-            if (this.checked)
-                $("#warehouse_div").attr("style", "display: block")
-            else
-                $("#warehouse_div").attr("style", "display: none")
-        });
+            form.on('switch(warehouse_admin_switch)', function (data) {
+                if (this.checked)
+                    $("#warehouse_div").attr("style", "display: block")
+                else
+                    $("#warehouse_div").attr("style", "display: none")
+            });
+        {% endif %}
 
         //监听提交
         form.on('submit(saveBtn)', function (data) {
