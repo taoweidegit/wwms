@@ -304,7 +304,10 @@ def refresh():
     # if _login.state != 'logout':
     _login.access_token = access_token
     _login.refresh_time = datetime.now()
+    if _login.state == "logout":
+        _login.state = "online"
     db.session.commit()
+
     return jsonify(access_token=access_token)
     # return jsonify(access_token=str(-1))
 
@@ -432,7 +435,7 @@ def get_page_list():
             if sys_it == "all":
                 menuInfo_child["child"].append({
                     "title": "仓库管理",
-                    "href": "",
+                    "href": f'{request.host_url}warehouse/page/warehouse?jwt={request.values.get("jwt")}',
                     "icon": "fa fa-meetup",
                     "target": "_self"
                 })
@@ -690,6 +693,24 @@ def add_user():
                 db.session.commit()
 
     return jsonify(code=Response.ok)
+
+
+@app.route('/warehouse/page/warehouse', methods=['GET'], endpoint='warehouse_page')
+@jwt_required(locations=["query_string"])
+def warehouse_page():
+    identity = get_jwt_identity()
+    uid = identity.get('uid')
+
+    result = (User.query.join(Role, Role.id == User.role).filter(User.id == uid)
+              .with_entities(Role.rank).all())
+
+    mode = ""
+
+    for rank in result:
+        if rank[0] <= 1:
+            mode = "add_warehouse"
+
+    return render_template("./warehouse_management.html", mode=mode)
 
 
 if __name__ == '__main__':
