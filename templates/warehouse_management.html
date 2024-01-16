@@ -22,7 +22,7 @@
         </script>
         <table class="layui-hide" id="warehouse_table" lay-filter="currentTableFilter"></table>
         <script type="text/html" id="currentTableBar">
-            <a class="layui-btn layui-btn-normal layui-btn-xs data-count-edit" lay-event="edit">编辑</a>
+            <a class="layui-btn layui-btn-normal layui-btn-xs data-count-edit" lay-event="edit">管理员</a>
         </script>
     </div>
 </div>
@@ -57,13 +57,13 @@
             {
                 // 监听添加操作
                 var index = layer.open({
-                    title: '添加用户',
+                    title: '添加仓库',
                     type: 2,
                     shade: 0.2,
                     maxmin:true,
                     shadeClose: true,
                     area: ['100%', '100%'],
-                    content: '{{ url_for('adding_user_page') }}',
+                    content: '{{ url_for('adding_warehouse_page') }}',
                 });
                 $(window).on("resize", function () {
                     layer.full(index);

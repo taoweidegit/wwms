@@ -719,6 +719,11 @@ def warehouse_page():
     return render_template("./warehouse_management.html", mode=mode)
 
 
+@app.route('/warehouse/page/adding', methods=['GET'], endpoint='adding_warehouse_page')
+def warehouse_adding_page():
+    return render_template("./add_warehouse.html")
+
+
 if __name__ == '__main__':
     port = int(cfg['server']['port'])
     server = pywsgi.WSGIServer(('0.0.0.0', port), app)
