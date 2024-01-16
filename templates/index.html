@@ -254,7 +254,10 @@
                             contentType:'application/json',
                             success: function(data){
                                 localStorage.setItem('access_key', data.access_token);
-                                window.location.reload();
+                                setTimeout(function(){
+                                    alert('token刷新成功...')
+                                    window.location.reload();
+                                }, 3000);
                             },
                         });
                     }

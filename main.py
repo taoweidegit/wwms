@@ -107,6 +107,10 @@ def send_message_with_keep_alive(queue_listener):
     requests.get(f'http://127.0.0.1:8080/queue/sendMessage?queueName={queue_listener}&&message=keep')
 
 
+def send_message_with_login(ack):
+    requests.get(f'http://127.0.0.1:8080/cache/login?ack={ack}')
+
+
 @app.route('/', endpoint='index_page')
 def index():
     stomp_config = {
@@ -304,9 +308,10 @@ def refresh():
     # if _login.state != 'logout':
     _login.access_token = access_token
     _login.refresh_time = datetime.now()
-    if _login.state == "logout":
-        _login.state = "online"
+    _login.state = 'online'
     db.session.commit()
+
+    send_message_with_login(_login.queue_listener)
 
     return jsonify(access_token=access_token)
     # return jsonify(access_token=str(-1))
