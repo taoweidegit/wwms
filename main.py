@@ -311,7 +311,7 @@ def refresh():
     _login.state = 'online'
     db.session.commit()
 
-    send_message_with_login(_login.queue_listener)
+    # send_message_with_login(_login.queue_listener)
 
     return jsonify(access_token=access_token)
     # return jsonify(access_token=str(-1))
@@ -722,6 +722,25 @@ def warehouse_page():
 @app.route('/warehouse/page/adding', methods=['GET'], endpoint='adding_warehouse_page')
 def warehouse_adding_page():
     return render_template("./add_warehouse.html")
+
+
+@app.route('/warehouse/add', methods=['POST'], endpoint='/warehouse/add_warehouse')
+def warehouse_adding_page():
+    name = request.json.get("name")
+    place = request.json.get("place")
+
+    warehouse = db.session.query(WareHouse).filter(WareHouse.name == name).first()
+    if warehouse is not None:
+        return jsonify(code=Response.repeat_warehouse)
+
+    warehouse = WareHouse()
+    warehouse.name = name
+    warehouse.position = place
+
+    db.session.add(warehouse)
+    db.session.commit()
+
+    return jsonify(code=Response.ok)
 
 
 if __name__ == '__main__':

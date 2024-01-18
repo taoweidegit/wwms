@@ -6,3 +6,5 @@ class Response:
     online = 403
     logout = 401
     keep_alive = 405
+
+    repeat_warehouse = 501
