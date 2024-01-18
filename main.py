@@ -743,6 +743,54 @@ def warehouse_adding_page():
     return jsonify(code=Response.ok)
 
 
+@app.route('/warehouse/page/administrator', methods=['GET'], endpoint='administrator_warehouse_page')
+def administrator_management():
+    warehouse_id = request.values.get("warehouse")
+    return render_template("./warehouse_administrator.html", warehouse_id=warehouse_id)
+
+
+@app.route('/warehouse/administrator/get', methods=['GET'], endpoint='/warehouse/get_warehouse_administrator')
+def get_warehouse_administrator():
+    warehouse_id = request.values.get("warehouse")
+    sql = text(
+        f"SELECT "
+        f"USER.`Name` AS name, "
+        f"User.ID AS uid, "
+        f"wa.ID AS warehouse_id, "
+        f"USER.Eid AS employee_id, "
+        f"department.`Name` AS department, "
+        f"role.`Name` AS role, "
+        f"wa.IS_Master AS is_master, "
+        f"wa.Role AS type "
+        f"FROM t_warehouse_administrator wa "
+        f"JOIN t_user USER ON wa.Administrator = USER.ID "
+        f"JOIN t_role role ON USER.Role = role.ID "
+        f"JOIN t_department department ON department.ID = USER.Department "
+        f"WHERE wa.ID = {warehouse_id}"
+    )
+    result = db.session.execute(sql)
+
+    warehouse_admin_list = []
+    for it in result:
+        warehouse_admin_list.append({
+            "name": it[0],
+            "uid": it[1],
+            "employee_id": it[3],
+            "department_name": it[4],
+            "role_name": it[5],
+            "is_master": it[6],
+            "type": it[7]
+        })
+
+    response = {
+        "code": 0,
+        "msg": "",
+        "count": len(warehouse_admin_list),
+        "data": warehouse_admin_list
+    }
+    return jsonify(response)
+
+
 if __name__ == '__main__':
     port = int(cfg['server']['port'])
     server = pywsgi.WSGIServer(('0.0.0.0', port), app)
