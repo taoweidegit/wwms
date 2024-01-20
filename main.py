@@ -843,6 +843,30 @@ def add_warehouse_administrator():
     return jsonify(code=Response.ok)
 
 
+@app.route('/warehouse/administrator/upgrade', methods=['POST'], endpoint='/warehouse/upgrade_warehouse_administrator')
+def upgrade_warehouse_administrator():
+    warehouse_administrator_id = request.values.get("id")
+    warehouse_administrator = (db.session.query(AdministratorOfWareHouse)
+                               .filter(AdministratorOfWareHouse.id == warehouse_administrator_id)
+                               .first())
+    if warehouse_administrator is not None:
+        warehouse_administrator.IS_Master = 'Y'
+        db.session.commit()
+    return jsonify(code=Response.ok)
+
+
+@app.route('/warehouse/administrator/remove', methods=['POST'], endpoint='/warehouse/remove_warehouse_administrator')
+def remove_warehouse_administrator():
+    warehouse_administrator_id = request.values.get("id")
+    warehouse_administrator = (db.session.query(AdministratorOfWareHouse)
+                               .filter(AdministratorOfWareHouse.id == warehouse_administrator_id)
+                               .first())
+    if warehouse_administrator is not None:
+        warehouse_administrator.IS_Delete = 'Y'
+        db.session.commit()
+    return jsonify(code=Response.ok)
+
+
 if __name__ == '__main__':
     port = int(cfg['server']['port'])
     server = pywsgi.WSGIServer(('0.0.0.0', port), app)
