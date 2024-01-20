@@ -44,13 +44,21 @@
                 {field: 'name', width: 200, title: '姓名', align: 'center'},
                 {field: 'employee_id', width: 200, title: '工号', align: 'center'},
                 {field: 'department_name', width: 200, title: '部门', align: 'center'},
-                {field: 'type', width: 200, title: '类别', align: 'center'},
+                {field: 'type', width: 300, title: '出/入库', align: 'center'},
                 {title: '操作', minWidth: 150, toolbar: '#currentTableBar', align: "center"}
             ]],
             limits: [10, 15, 20, 25, 50, 100],
             limit: 15,
             page: true,
-            skin: 'line'
+            skin: 'line',
+            done: function(res, curr, count){
+                $("[data-field='type']").children().each(function(){
+                    if ($(this).text() == 'Outbound')
+                        $(this).text('出库')
+                    else if ($(this).text() == 'Inbound')
+                        $(this).text('入库')
+                });
+            }
         });
 
         tableSelect.render({
@@ -107,17 +115,20 @@
         table.on('tool(currentTableFilter)', function (obj) {
             var data = obj.data;
             if (obj.event === 'delete') {
-                $.ajax({
-                    type: "POST",
-                    url: "{{ url_for('/warehouse/remove_warehouse_administrator') }}?id="+data.id,
-                    success: function(result) {
-                        var code = result.code;
-                        if (code == 200)
-                            layer.alert('删除成功', function(){
-                                window.location.reload();
-                            });
-                    }
-                });
+                if (data.type == 'Inbound')
+                    layer.msg('权限不足');
+                else
+                    $.ajax({
+                        type: "POST",
+                        url: "{{ url_for('/warehouse/remove_warehouse_administrator') }}?id="+data.id,
+                        success: function(result) {
+                            var code = result.code;
+                            if (code == 200)
+                                layer.alert('删除成功', function(){
+                                    window.location.reload();
+                                });
+                        }
+                    });
                 return false;
             }
         });

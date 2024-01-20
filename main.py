@@ -739,6 +739,20 @@ def warehouse_adding_page():
     db.session.add(warehouse)
     db.session.commit()
 
+    # 添加计量专员为仓库入库管理员
+    metrology_specialist = (db.session.query(User)
+                            .join(Role, User.role == Role.id)
+                            .filter(Role.name == '计量专员')
+                            .first())
+    new_admin_of_warehouse = AdministratorOfWareHouse()
+    new_admin_of_warehouse.warehouse = warehouse.id
+    new_admin_of_warehouse.role = 'Inbound'
+    new_admin_of_warehouse.is_delete = 'N'
+    new_admin_of_warehouse.is_master = 'Y'
+    new_admin_of_warehouse.administrator = metrology_specialist.id
+    db.session.add(new_admin_of_warehouse)
+    db.session.commit()
+
     return jsonify(code=Response.ok)
 
 
@@ -846,18 +860,6 @@ def add_warehouse_administrator():
     return jsonify(code=Response.ok)
 
 
-@app.route('/warehouse/administrator/upgrade', methods=['POST'], endpoint='/warehouse/upgrade_warehouse_administrator')
-def upgrade_warehouse_administrator():
-    warehouse_administrator_id = request.values.get("id")
-    warehouse_administrator = (db.session.query(AdministratorOfWareHouse)
-                               .filter(AdministratorOfWareHouse.id == warehouse_administrator_id)
-                               .first())
-    if warehouse_administrator is not None:
-        warehouse_administrator.is_master = 'Y'
-        db.session.commit()
-    return jsonify(code=Response.ok)
-
-
 @app.route('/warehouse/administrator/remove', methods=['POST'], endpoint='/warehouse/remove_warehouse_administrator')
 def remove_warehouse_administrator():
     warehouse_administrator_id = request.values.get("id")
@@ -865,8 +867,9 @@ def remove_warehouse_administrator():
                                .filter(AdministratorOfWareHouse.id == warehouse_administrator_id)
                                .first())
     if warehouse_administrator is not None:
-        warehouse_administrator.is_delete = 'Y'
-        db.session.commit()
+        if warehouse_administrator.role == 'Outbound':
+            warehouse_administrator.is_delete = 'Y'
+            db.session.commit()
     return jsonify(code=Response.ok)
 
 
