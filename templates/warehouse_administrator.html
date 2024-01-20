@@ -15,6 +15,7 @@
         <script type="text/html" id="toolbar">
             <div class="layui-btn-container">
                 <button class="layui-btn layui-btn-normal layui-btn-sm data-add-btn" lay-event="add"> 添加 </button>
+                <input style="display: none" type="text" name="" placeholder="添加管理员" autocomplete="off" class="layui-input" id="add_admin" value="" ts-selected="{{ warehouse_admin_uid }}">
                 <button class="layui-btn layui-btn-primary layui-btn-sm data-refresh-btn" lay-event="refresh"> 刷新 </button>
             </div>
         </script>
@@ -25,11 +26,13 @@
     </div>
 </div>
 <script src="{{ url_for('static', filename = 'layui/lib/layui-v2.6.3/layui.js') }}" charset="utf-8"></script>
+<script src="{{ url_for('static', filename = 'layui/js/lay-config.js') }}" charset="utf-8"></script>
 <script>
-    layui.use(['form', 'table'], function () {
+    layui.use(['form', 'table', 'tableSelect'], function () {
         var $ = layui.jquery,
             form = layui.form,
-            table = layui.table;
+            table = layui.table,
+            tableSelect = layui.tableSelect;
 
         table.render({
             elem: '#warehouse_table',
@@ -50,11 +53,48 @@
             skin: 'line'
         });
 
-        // 添加仓库
+        tableSelect.render({
+            elem: '#add_admin',
+<!--            searchKey: 'my',-->
+            checkedKey: 'id',
+<!--            searchPlaceholder: '自定义文字和name',-->
+            table: {
+                url: '{{ url_for('/user/get_user_list') }}',
+                cols: [[
+                    { type: 'checkbox' },
+                    {field: 'id', title: 'ID', align: 'center', hide: true},
+                    {field: 'name', title: '用户名', align: 'center'},
+                    {field: 'employee_id', title: '工号', align: 'center'},
+                    {field: 'department_name', title: '部门', align: 'center'}
+                ]]
+            },
+            done: function (elem, data) {
+                var arr = []
+                layui.each(data.data, function (index, item) {
+                    arr.push(item.id)
+                });
+                data = {"data": arr, "warehouse": {{ warehouse_id }}}
+                $.ajax({
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(data),
+                    url: "{{ url_for('/warehouse/add_warehouse_administrator') }}",
+                    success: function(result) {
+                        var code = result.code;
+                        if (code == 200)
+                            window.location.reload();
+                        else
+                            layer.alert('重复!');
+                    }
+                });
+            }
+        });
+
+        // 添加仓库管理员
         table.on('toolbar(currentTableFilter)', function (obj) {
             if (obj.event === 'add')
             {
-
+                $("#add_admin").click()
             }
             else if (obj.event === 'refresh')
             {

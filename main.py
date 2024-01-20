@@ -97,6 +97,7 @@ class AdministratorOfWareHouse(db.Model):
     role = db.Column('Role', db.String)
     warehouse = db.Column('Warehouse', db.String)
     is_master = db.Column('IS_Master', db.String)
+    is_delete = db.Column('IS_Delete', db.String)
 
 
 def send_message_with_logout(queue_listener):
@@ -105,10 +106,6 @@ def send_message_with_logout(queue_listener):
 
 def send_message_with_keep_alive(queue_listener):
     requests.get(f'http://127.0.0.1:8080/queue/sendMessage?queueName={queue_listener}&&message=keep')
-
-
-def send_message_with_login(ack):
-    requests.get(f'http://127.0.0.1:8080/cache/login?ack={ack}')
 
 
 @app.route('/', endpoint='index_page')
@@ -694,6 +691,7 @@ def add_user():
                 aw.administrator = user.id
                 aw.role = 'outbound'
                 aw.is_master = 'N'
+                aw.is_delete = 'N'
                 db.session.add(aw)
                 db.session.commit()
 
@@ -746,7 +744,27 @@ def warehouse_adding_page():
 @app.route('/warehouse/page/administrator', methods=['GET'], endpoint='administrator_warehouse_page')
 def administrator_management():
     warehouse_id = request.values.get("warehouse")
-    return render_template("./warehouse_administrator.html", warehouse_id=warehouse_id)
+
+    warehouse_admin_list = (db.session.query(AdministratorOfWareHouse)
+                            .filter(AdministratorOfWareHouse.warehouse == warehouse_id,
+                                    AdministratorOfWareHouse.is_delete == 'N')
+                            .all())
+
+    warehouse_admin_uid_list_str = ''
+    i = 0
+    total_count = 0
+    for _ in warehouse_admin_list:
+        total_count += 1
+
+    for warehouse_admin in warehouse_admin_list:
+        warehouse_admin_uid_list_str += str(warehouse_admin.administrator)
+        i += 1
+        if i < total_count:
+            warehouse_admin_uid_list_str += ','
+
+    return render_template("./warehouse_administrator.html",
+                           warehouse_id=warehouse_id,
+                           warehouse_admin_uid=warehouse_admin_uid_list_str)
 
 
 @app.route('/warehouse/administrator/get', methods=['GET'], endpoint='/warehouse/get_warehouse_administrator')
@@ -766,7 +784,7 @@ def get_warehouse_administrator():
         f"JOIN t_user USER ON wa.Administrator = USER.ID "
         f"JOIN t_role role ON USER.Role = role.ID "
         f"JOIN t_department department ON department.ID = USER.Department "
-        f"WHERE wa.ID = {warehouse_id}"
+        f"WHERE wa.Warehouse = {warehouse_id} AND wa.IS_Delete = 'N'"
     )
     result = db.session.execute(sql)
 
@@ -789,6 +807,40 @@ def get_warehouse_administrator():
         "data": warehouse_admin_list
     }
     return jsonify(response)
+
+
+@app.route('/warehouse/administrator/add', methods=['POST'], endpoint='/warehouse/add_warehouse_administrator')
+def add_warehouse_administrator():
+    data = request.json.get("data")
+    warehouse_id = request.json.get("warehouse")
+
+    add_count = 0
+
+    for it in data:
+        warehouse_admin = (db.session.query(AdministratorOfWareHouse)
+                           .filter(AdministratorOfWareHouse.administrator == it,
+                                   AdministratorOfWareHouse.warehouse == str(warehouse_id))
+                           .first())
+        if warehouse_admin is None:
+            new_warehouse_admin = AdministratorOfWareHouse()
+            new_warehouse_admin.administrator = it
+            new_warehouse_admin.warehouse = warehouse_id
+            new_warehouse_admin.role = 'Outbound'
+            new_warehouse_admin.is_master = 'N'
+            new_warehouse_admin.is_delete = 'N'
+            db.session.add(new_warehouse_admin)
+            db.session.commit()
+            add_count += 1
+        else:
+            if warehouse_admin.is_delete == 'Y':
+                warehouse_admin.is_delete = 'N'
+                db.session.commit()
+                add_count += 1
+            else:
+                pass
+    if add_count == 0:
+        return jsonify(code=Response.repeat_warehouse_admin)
+    return jsonify(code=Response.ok)
 
 
 if __name__ == '__main__':

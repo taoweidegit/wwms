@@ -8,3 +8,4 @@ class Response:
     keep_alive = 405
 
     repeat_warehouse = 501
+    repeat_warehouse_admin = 502
