@@ -28,6 +28,7 @@ db_port = cfg['mysql']['port']
 db_database = cfg['mysql']['database']
 app.config["SQLALCHEMY_DATABASE_URI"] \
     = f"mysql+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_database}?charset=utf8"
+app.config["SQLALCHEMY_ECHO"] = True
 db = SQLAlchemy(app)
 
 app.config['JWT_SECRET_KEY'] = 'twei3131'
@@ -779,7 +780,8 @@ def get_warehouse_administrator():
         f"department.`Name` AS department, "
         f"role.`Name` AS role, "
         f"wa.IS_Master AS is_master, "
-        f"wa.Role AS type "
+        f"wa.Role AS type, "
+        f"wa.ID as warehouse_administrator_id "
         f"FROM t_warehouse_administrator wa "
         f"JOIN t_user USER ON wa.Administrator = USER.ID "
         f"JOIN t_role role ON USER.Role = role.ID "
@@ -797,7 +799,8 @@ def get_warehouse_administrator():
             "department_name": it[4],
             "role_name": it[5],
             "is_master": it[6],
-            "type": it[7]
+            "type": it[7],
+            "id": it[8]
         })
 
     response = {
@@ -850,7 +853,7 @@ def upgrade_warehouse_administrator():
                                .filter(AdministratorOfWareHouse.id == warehouse_administrator_id)
                                .first())
     if warehouse_administrator is not None:
-        warehouse_administrator.IS_Master = 'Y'
+        warehouse_administrator.is_master = 'Y'
         db.session.commit()
     return jsonify(code=Response.ok)
 
@@ -862,7 +865,7 @@ def remove_warehouse_administrator():
                                .filter(AdministratorOfWareHouse.id == warehouse_administrator_id)
                                .first())
     if warehouse_administrator is not None:
-        warehouse_administrator.IS_Delete = 'Y'
+        warehouse_administrator.is_delete = 'Y'
         db.session.commit()
     return jsonify(code=Response.ok)
 

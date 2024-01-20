@@ -103,12 +103,21 @@
             }
         });
 
-        // 编辑用户
+        // 删除、升级
         table.on('tool(currentTableFilter)', function (obj) {
             var data = obj.data;
             if (obj.event === 'delete') {
-
-
+                $.ajax({
+                    type: "POST",
+                    url: "{{ url_for('/warehouse/remove_warehouse_administrator') }}?id="+data.id,
+                    success: function(result) {
+                        var code = result.code;
+                        if (code == 200)
+                            layer.alert('删除成功', function(){
+                                window.location.reload();
+                            });
+                    }
+                });
                 return false;
             }
         });
