@@ -1,17 +1,15 @@
 import json
 import os
-import time
 from datetime import datetime, timedelta
 
-import yaml
 import requests
-from flask import Flask, render_template, request, jsonify
 import stomp
-
-from gevent import pywsgi
+import yaml
+from flask import Flask, render_template, request, jsonify
+from flask_jwt_extended import (JWTManager, jwt_required, create_access_token, get_jwt_identity, create_refresh_token,
+                                decode_token)
 from flask_sqlalchemy import SQLAlchemy
-from flask_jwt_extended import (JWTManager, jwt_required, create_access_token, get_jwt_identity, set_access_cookies,
-                                create_refresh_token, unset_jwt_cookies, decode_token)
+from gevent import pywsgi
 from sqlalchemy import text
 
 from response_code import Response
@@ -119,6 +117,13 @@ class WareKind(db.Model):
     id = db.Column('ID', db.Integer, primary_key=True)
     name = db.Column('Name', db.String)
     pid = db.Column('Pid', db.Integer)
+
+
+class Unit(db.Model):
+    __tablename__ = 't_unit'
+
+    id = db.Column('ID', db.Integer, primary_key=True)
+    name = db.Column('Name', db.String)
 
 
 class Apply(db.Model):
@@ -437,8 +442,8 @@ def get_page_list():
                 "target": "_self"
             })
             menuInfo_child["child"].append({
-                "title": "备件申请",
-                "href": f'{request.host_url}ware/page/apply?jwt={request.values.get("jwt")}',
+                "title": "备件申请记录",
+                "href": f'{request.host_url}ware/page/application?jwt={request.values.get("jwt")}',
                 "icon": "fa fa-adn",
                 "target": "_self"
             })
@@ -906,13 +911,64 @@ def remove_warehouse_administrator():
     return jsonify(code=Response.ok)
 
 
-@app.route('/ware/page/apply', methods=['GET'], endpoint='ware_apply_page')
+@app.route('/ware/page/application', methods=['GET'], endpoint='ware_application_query_page')
 @jwt_required(locations=["query_string"])
 def ware_apply_page():
+    _jwt = request.values.get('jwt')
+    return render_template("./ware_management.html", jwt=_jwt)
+
+
+@app.route('/ware/application', methods=['POST'], endpoint='ware/get_application')
+@jwt_required(locations=["query_string"])
+def get_ware_application():
     identity = get_jwt_identity()
     uid = identity.get('uid')
-    print(uid)
-    return render_template("./ware_management.html")
+
+    user = db.session.query(User).filter(User.id == uid).first()
+
+    data = []
+
+    apply_list = (db.session.query(Apply)
+                  .filter(Apply.applicant == uid, Apply.type == 'inbound')
+                  .paginate(1, 15, False)
+                  .items)
+    for apply in apply_list:
+        applicant_user = user.name
+        apply_id = apply.id
+
+        quantity = apply.quantity
+        warehousing_time = apply.warehousing_time
+
+        ware = db.session.query(Ware).filter(Ware.id == apply.ware).first()
+        ware_model = ware.model if ware.model is not None else ''
+        ware_company = ware.company if ware.company is not None else ''
+        ware_number = ware.item_number if ware.item_number is not None else ''
+
+        ware_unit = ware.unit
+        if ware_unit is not None:
+            unit = db.session.query(Unit).filter(Unit.id == ware_unit)
+            _unit = unit.name
+        else:
+            _unit = '件'
+
+        data.append({
+            "id": apply_id,
+            "applicant": applicant_user,
+            "quantity": quantity,
+            "time": warehousing_time,
+            "model": ware_model,
+            "company": ware_company,
+            "item_number": ware_number,
+            "unit_name": _unit
+        })
+
+    response = {
+        "code": 0,
+        "msg": "",
+        "count": len(data),
+        "data": data
+    }
+    return jsonify(response)
 
 
 if __name__ == '__main__':
