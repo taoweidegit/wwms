@@ -364,7 +364,7 @@ def get_page_list():
     if rank <= 2:
         pages = ['user/all', 'spare/all', 'stock/all']
     elif rank == 3:
-        pages = ['spare/query', 'stock/apply']
+        pages = ['spare/query']
     else:
         pages = []
 
@@ -404,8 +404,8 @@ def get_page_list():
                 "target": "_self"
             })
             menuInfo_child["child"].append({
-                "title": "盘库",
-                "href": "page/icon-picker.html",
+                "title": "备件申请",
+                "href": f'{request.host_url}ware/page/apply?jwt={request.values.get("jwt")}',
                 "icon": "fa fa-adn",
                 "target": "_self"
             })
@@ -871,6 +871,15 @@ def remove_warehouse_administrator():
             warehouse_administrator.is_delete = 'Y'
             db.session.commit()
     return jsonify(code=Response.ok)
+
+
+@app.route('/ware/page/apply', methods=['GET'], endpoint='ware_apply_page')
+@jwt_required(locations=["query_string"])
+def ware_apply_page():
+    identity = get_jwt_identity()
+    uid = identity.get('uid')
+    print(uid)
+    return render_template("./ware_management.html")
 
 
 if __name__ == '__main__':
