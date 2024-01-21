@@ -101,6 +101,39 @@ class AdministratorOfWareHouse(db.Model):
     is_delete = db.Column('IS_Delete', db.String)
 
 
+class Ware(db.Model):
+    __tablename__ = 't_ware'
+
+    id = db.Column('ID', db.Integer, primary_key=True)
+    name = db.Column('Name', db.String)
+    model = db.Column('Model', db.String)
+    kind = db.Column('Kind', db.Integer)
+    unit = db.Column('Unit', db.Integer)
+    company = db.Column('Company', db.Integer)
+    item_number = db.Column('ItemNumber', db.String)
+
+
+class WareKind(db.Model):
+    __tablename__ = 't_ware_kind'
+
+    id = db.Column('ID', db.Integer, primary_key=True)
+    name = db.Column('Name', db.String)
+    pid = db.Column('Pid', db.Integer)
+
+
+class Apply(db.Model):
+    __tablename__ = 't_apply'
+
+    id = db.Column('ID', db.Integer, primary_key=True)
+    applicant = db.Column('Applicant', db.Integer)
+    quantity = db.Column('Quantity', db.Integer)
+    application_time = db.Column('ApplicationTime', db.DateTime)
+    type = db.Column('Type', db.String)
+    state = db.Column('State', db.String)
+    warehousing_time = db.Column('WarehousingTime', db.DateTime)
+    ware = db.Column('Ware', db.Integer)
+
+
 def send_message_with_logout(queue_listener):
     requests.get(f'http://127.0.0.1:8080/queue/sendMessage?queueName={queue_listener}&&message=logout')
 
