@@ -10,7 +10,7 @@ from flask_jwt_extended import (JWTManager, jwt_required, create_access_token, g
                                 decode_token)
 from flask_sqlalchemy import SQLAlchemy
 from gevent import pywsgi
-from sqlalchemy import text
+from sqlalchemy import text, desc
 
 from response_code import Response
 
@@ -137,6 +137,7 @@ class Apply(db.Model):
     state = db.Column('State', db.String)
     warehousing_time = db.Column('WarehousingTime', db.DateTime)
     ware = db.Column('Ware', db.Integer)
+    apply_quantity = db.Column('ApplyQuantity', db.Integer)
 
 
 def send_message_with_logout(queue_listener):
@@ -435,15 +436,15 @@ def get_page_list():
                 "child": []
             }
 
-            menuInfo_child["child"].append({
-                "title": "备件查询",
-                "href": "page/icon-picker.html",
-                "icon": "fa fa-adn",
-                "target": "_self"
-            })
+            # menuInfo_child["child"].append({
+            #     "title": "备件查询",
+            #     "href": "page/icon-picker.html",
+            #     "icon": "fa fa-adn",
+            #     "target": "_self"
+            # })
             menuInfo_child["child"].append({
                 "title": "备件申请记录",
-                "href": f'{request.host_url}ware/page/application?jwt={request.values.get("jwt")}',
+                "href": f'{request.host_url}ware/page/management',
                 "icon": "fa fa-adn",
                 "target": "_self"
             })
@@ -500,9 +501,9 @@ def get_page_list():
                             })
                     elif rank == 3:
                         res = db.session.execute(f"SELECT warehouse.* "
-                                                 "FROM t_warehouse_administrator administrator_of_warehouse "
-                                                 "JOIN t_warehouse warehouse "
-                                                 "ON administrator_of_warehouse.Warehouse = warehouse.ID "
+                                                 f"FROM t_warehouse_administrator administrator_of_warehouse "
+                                                 f"JOIN t_warehouse warehouse "
+                                                 f"ON administrator_of_warehouse.Warehouse = warehouse.ID "
                                                  f"WHERE administrator_of_warehouse.Administrator = {uid}")
                         for it in res:
                             warehouse_page_list.append({
@@ -911,38 +912,46 @@ def remove_warehouse_administrator():
     return jsonify(code=Response.ok)
 
 
-@app.route('/ware/page/application', methods=['GET'], endpoint='ware_application_query_page')
-@jwt_required(locations=["query_string"])
-def ware_apply_page():
-    _jwt = request.values.get('jwt')
-    return render_template("./ware_management.html", jwt=_jwt)
+@app.route('/ware/page/management', methods=['GET'], endpoint='ware_management_page')
+def ware_management_page():
+    return render_template("./ware_management.html")
 
 
 @app.route('/ware/application', methods=['POST'], endpoint='ware/get_application')
 @jwt_required(locations=["query_string"])
 def get_ware_application():
+    page = int(request.form.get("page"))
+    limit = int(request.form.get("limit"))
+
     identity = get_jwt_identity()
     uid = identity.get('uid')
+
+    search_params = request.form.get("searchParams")
+    apply_state = 'pending'
+    if search_params is not None:
+        apply_state = json.loads(search_params)['apply_state']
 
     user = db.session.query(User).filter(User.id == uid).first()
 
     data = []
 
     apply_list = (db.session.query(Apply)
-                  .filter(Apply.applicant == uid, Apply.type == 'inbound')
-                  .paginate(1, 15, False)
+                  .filter(Apply.applicant == uid, Apply.type == 'inbound', Apply.state == apply_state)
+                  .order_by(desc(Apply.application_time))
+                  .paginate(page=page, per_page=limit)
                   .items)
     for apply in apply_list:
         applicant_user = user.name
         apply_id = apply.id
 
-        quantity = apply.quantity
+        quantity = apply.quantity if apply.quantity is None else ''
+        apply_quantity = apply.apply_quantity
         warehousing_time = apply.warehousing_time
 
         ware = db.session.query(Ware).filter(Ware.id == apply.ware).first()
-        ware_model = ware.model if ware.model is not None else ''
-        ware_company = ware.company if ware.company is not None else ''
-        ware_number = ware.item_number if ware.item_number is not None else ''
+        ware_model = ware.model if ware.model is not None else '-'
+        ware_company = ware.company if ware.company is not None else '无'
+        ware_number = ware.item_number if ware.item_number is not None else '-'
 
         ware_unit = ware.unit
         if ware_unit is not None:
@@ -955,6 +964,7 @@ def get_ware_application():
             "id": apply_id,
             "applicant": applicant_user,
             "quantity": quantity,
+            "apply_quantity": apply_quantity,
             "time": warehousing_time,
             "model": ware_model,
             "company": ware_company,
@@ -969,6 +979,11 @@ def get_ware_application():
         "data": data
     }
     return jsonify(response)
+
+
+@app.route('/ware/page/apply', methods=['GET'], endpoint='ware_apply_page')
+def apply_page():
+    return render_template("./ware_apply.html")
 
 
 if __name__ == '__main__':
