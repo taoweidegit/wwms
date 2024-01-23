@@ -104,7 +104,7 @@ class Ware(db.Model):
 
     id = db.Column('ID', db.Integer, primary_key=True)
     name = db.Column('Name', db.String)
-    model = db.Column('Model', db.String)
+    model = db.Column('Model', db.Integer)
     kind = db.Column('Kind', db.Integer)
     unit = db.Column('Unit', db.Integer)
     company = db.Column('Company', db.Integer)
@@ -126,18 +126,26 @@ class Unit(db.Model):
     name = db.Column('Name', db.String)
 
 
+class _Model(db.Model):
+    __tablename__ = 't_model'
+
+    id = db.Column('ID', db.Integer, primary_key=True)
+    kind = db.Column('Kind', db.Integer)
+    name = db.Column('Name', db.String)
+
+
 class Apply(db.Model):
     __tablename__ = 't_apply'
 
     id = db.Column('ID', db.Integer, primary_key=True)
     applicant = db.Column('Applicant', db.Integer)
-    quantity = db.Column('Quantity', db.Integer)
+    ware_quantity = db.Column('WareQuantity', db.Integer)
     application_time = db.Column('ApplicationTime', db.DateTime)
-    type = db.Column('Type', db.String)
     state = db.Column('State', db.String)
     warehousing_time = db.Column('WarehousingTime', db.DateTime)
     ware = db.Column('Ware', db.Integer)
     apply_quantity = db.Column('ApplyQuantity', db.Integer)
+    warehouse = db.Column('Warehouse', db.Integer)
 
 
 def send_message_with_logout(queue_listener):
@@ -936,7 +944,7 @@ def get_ware_application():
     data = []
 
     apply_list = (db.session.query(Apply)
-                  .filter(Apply.applicant == uid, Apply.type == 'inbound', Apply.state == apply_state)
+                  .filter(Apply.applicant == uid, Apply.state == apply_state)
                   .order_by(desc(Apply.application_time))
                   .paginate(page=page, per_page=limit)
                   .items)
@@ -949,7 +957,12 @@ def get_ware_application():
         warehousing_time = apply.warehousing_time
 
         ware = db.session.query(Ware).filter(Ware.id == apply.ware).first()
-        ware_model = ware.model if ware.model is not None else '-'
+        if ware.model is not None:
+            _model = db.session.query(_Model).filter(_Model.id == ware.model).first()
+            ware_model = _model.name
+        else:
+            ware_model = "无"
+
         ware_company = ware.company if ware.company is not None else '无'
         ware_number = ware.item_number if ware.item_number is not None else '-'
 
@@ -960,6 +973,13 @@ def get_ware_application():
         else:
             _unit = '件'
 
+        warehouse_id = apply.warehouse
+        if warehouse_id is not None:
+            warehouse = db.session.query(WareHouse).filter(WareHouse.id == warehouse_id).first()
+            warehouse_name = warehouse.name
+        else:
+            warehouse_name = '无'
+
         data.append({
             "id": apply_id,
             "applicant": applicant_user,
@@ -969,7 +989,8 @@ def get_ware_application():
             "model": ware_model,
             "company": ware_company,
             "item_number": ware_number,
-            "unit_name": _unit
+            "unit_name": _unit,
+            "warehouse": warehouse_name
         })
 
     response = {
@@ -984,6 +1005,32 @@ def get_ware_application():
 @app.route('/ware/page/apply', methods=['GET'], endpoint='ware_apply_page')
 def apply_page():
     return render_template("./ware_apply.html")
+
+
+@app.route('/kind/top/get', methods=['GET'], endpoint='/kind/get_top_kind')
+def get_kind():
+    response = []
+    ware_kind_list = db.session.query(WareKind).filter(WareKind.pid == 0).all()
+    for top_kind in ware_kind_list:
+        response.append({
+            "id": top_kind.id,
+            "name": top_kind.name
+        })
+    return jsonify(response)
+
+
+@app.route('/kind/child/get', methods=['POST'], endpoint='/kind/get_child_kind')
+def get_child_kind():
+    top_kind_id = request.json.get("top")
+
+    response = []
+    child_kind_list = db.session.query(WareKind).filter(WareKind.pid == top_kind_id).all()
+    for child_kind in child_kind_list:
+        response.append({
+            "id": child_kind.id,
+            "name": child_kind.name
+        })
+    return jsonify(response)
 
 
 if __name__ == '__main__':

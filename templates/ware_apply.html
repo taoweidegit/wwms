@@ -10,11 +10,92 @@
     <link rel="stylesheet" href="{{ url_for('static', filename = 'layui/css/public.css') }}" media="all">
 </head>
 <body>
+<div class="layuimini-container">
+    <div class="layuimini-main">
+        <form class="layui-form" action="">
+            <div class="layui-form-item">
+                <label class="layui-form-label">类别</label>
+                <div class="layui-input-inline">
+                    <select id="top_type" name="top_type" lay-filter="change_top_type"></select>
+                </div>
+                <div class="layui-input-inline">
+                    <select id="child_type" name="child_type" lay-filter="change_child_type"></select>
+                </div>
+            </div>
 
+            <div class="layui-form-item">
+                <label class="layui-form-label">型号</label>
+                <div class="layui-input-block">
+                    <select id="model" name="model" lay-filter="change_model"></select>
+                </div>
+            </div>
+
+            <div class="layui-form-item">
+                <div class="layui-inline">
+                    <label class="layui-form-label">厂家</label>
+                    <div class="layui-input-inline">
+                        <select id="region" name="vendorsRegion"></select>
+                    </div>
+                </div>
+            </div>
+
+             <div class="layui-form-item">
+                <div class="layui-inline">
+                    <label class="layui-form-label">数量单位</label>
+                    <div class="layui-input-inline">
+                        <select id="unit" name="unit"></select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="layui-form-item">
+                <div class="layui-input-block">
+                    <button class="layui-btn" lay-submit="" lay-filter="demo1">立即提交</button>
+                    <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 <script src="{{ url_for('static', filename = 'layui/lib/layui-v2.6.3/layui.js') }}" charset="utf-8"></script>
 <script src="{{ url_for('static', filename = 'layui/js/lay-config.js') }}" charset="utf-8"></script>
 <script>
+layui.use(['form', 'laydate'], function () {
+    var $ = layui.$,
+        form = layui.form,
+        laydate = layui.laydate;
 
+    $().ready(function(){
+        $.get('{{ url_for('/kind/get_top_kind') }}', function(data){
+            $("#top_type").append("<option value='0'>请选择</option>")
+            for (var i = 0; i < data.length; i++)
+                $("#top_type").append("<option value='" + data[i].id + "'>" + data[i].name + "</option>>");
+            form.render('select')
+            form.render();
+        });
+    });
+
+    form.on('select(change_top_type)', function () {
+        $("#child_type").html("<option value='0'>请选择</option>");
+        top_id = $("#top_type option:selected").val();
+        $.ajax({
+            type: 'post',
+            url: '{{ url_for('/kind/get_child_kind') }}',
+            data: JSON.stringify({"top": top_id}),
+            contentType:"application/json",
+            success(data) {
+                for (var i = 0; i < data.length; i++)
+                    $("#child_type").append("<option value='" + data[i].id + "'>" + data[i].name + "</option>>");
+                form.render('select')
+                form.render();
+            }
+        });
+    });
+});
+
+function load(){
+
+}
 </script>
 </body>
 </html>
