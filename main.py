@@ -106,8 +106,6 @@ class Ware(db.Model):
     name = db.Column('Name', db.String)
     model = db.Column('Model', db.Integer)
     kind = db.Column('Kind', db.Integer)
-    unit = db.Column('Unit', db.Integer)
-    company = db.Column('Company', db.Integer)
     item_number = db.Column('ItemNumber', db.String)
 
 
@@ -126,12 +124,21 @@ class Unit(db.Model):
     name = db.Column('Name', db.String)
 
 
+class Company(db.Model):
+    __tablename__ = 't_company'
+
+    id = db.Column('ID', db.Integer, primary_key=True)
+    name = db.Column('Name', db.String)
+
+
 class _Model(db.Model):
     __tablename__ = 't_model'
 
     id = db.Column('ID', db.Integer, primary_key=True)
     kind = db.Column('Kind', db.Integer)
     name = db.Column('Name', db.String)
+    company = db.Column('Company', db.Integer)
+    unit = db.Column('Unit', db.Integer)
 
 
 class Apply(db.Model):
@@ -960,18 +967,23 @@ def get_ware_application():
         if ware.model is not None:
             _model = db.session.query(_Model).filter(_Model.id == ware.model).first()
             ware_model = _model.name
+            if _model.company is not None:
+                company = db.session.query(Company).filter(Company.id == _model.company).first()
+                ware_company = company.name
+            else:
+                ware_company = "无"
+
+            if _model.unit is not None:
+                unit = db.session.query(Unit).filter(Unit.id == _model.unit)
+                _unit = unit.name
+            else:
+                _unit = "件"
         else:
             ware_model = "无"
+            ware_company = "无"
+            _unit = "件"
 
-        ware_company = ware.company if ware.company is not None else '无'
         ware_number = ware.item_number if ware.item_number is not None else '-'
-
-        ware_unit = ware.unit
-        if ware_unit is not None:
-            unit = db.session.query(Unit).filter(Unit.id == ware_unit)
-            _unit = unit.name
-        else:
-            _unit = '件'
 
         warehouse_id = apply.warehouse
         if warehouse_id is not None:
@@ -1031,6 +1043,38 @@ def get_child_kind():
             "name": child_kind.name
         })
     return jsonify(response)
+
+
+@app.route('/model/kind/get', methods=['POST'], endpoint='/kind/get_model_by_kind')
+def get_model_by_kind():
+    kind = request.json.get('kind')
+
+    lst = []
+
+    model_list = db.session.query(_Model).filter(_Model.kind == kind).all()
+    for _model in model_list:
+        item = {
+            "id": _model.id,
+            "name": _model.name,
+            "company": {},
+            "unit": {}
+        }
+        if _model.company is not None:
+            company = db.session.query(Company).filter(Company.id == _model.company).first()
+            item["company"] = {
+                "id": company.id,
+                "name": company.name
+            }
+
+        if _model.unit is not None:
+            _unit = db.session.query(Unit).filter(Unit.id == int(_model.unit)).first()
+            item["unit"] = {
+                "id": _unit.id,
+                "name": _unit.name
+            }
+        lst.append(item)
+
+    return jsonify(lst)
 
 
 if __name__ == '__main__':

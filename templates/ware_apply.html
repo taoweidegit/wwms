@@ -25,7 +25,7 @@
 
             <div class="layui-form-item">
                 <label class="layui-form-label">型号</label>
-                <div class="layui-input-block">
+                <div class="layui-input-inline">
                     <select id="model" name="model" lay-filter="change_model"></select>
                 </div>
             </div>
@@ -34,14 +34,17 @@
                 <div class="layui-inline">
                     <label class="layui-form-label">厂家</label>
                     <div class="layui-input-inline">
-                        <select id="region" name="vendorsRegion"></select>
+                        <select id="company" name="company"></select>
                     </div>
                 </div>
             </div>
 
              <div class="layui-form-item">
                 <div class="layui-inline">
-                    <label class="layui-form-label">数量单位</label>
+                    <label class="layui-form-label">数量</label>
+                    <div class="layui-input-inline">
+                        <input type="number" name="quantity" lay-verify="required" placeholder="备件数量" autocomplete="off" class="layui-input">
+                    </div>
                     <div class="layui-input-inline">
                         <select id="unit" name="unit"></select>
                     </div>
@@ -77,6 +80,10 @@ layui.use(['form', 'laydate'], function () {
 
     form.on('select(change_top_type)', function () {
         $("#child_type").html("<option value='0'>请选择</option>");
+        $("#model").html("<option value='0'>请选择</option>");
+        $("#company").html("<option value='0'>请选择</option>");
+        $("#unit").html("<option value='0'>请选择</option>");
+
         top_id = $("#top_type option:selected").val();
         $.ajax({
             type: 'post',
@@ -85,17 +92,63 @@ layui.use(['form', 'laydate'], function () {
             contentType:"application/json",
             success(data) {
                 for (var i = 0; i < data.length; i++)
-                    $("#child_type").append("<option value='" + data[i].id + "'>" + data[i].name + "</option>>");
+                    $("#child_type").append("<option value='" + data[i].id + "'>" + data[i].name + "</option>");
+                form.render('select')
+                form.render();
+            }
+        });
+    });
+
+    var select_data = null
+
+    form.on('select(change_child_type)', function () {
+        $("#model").html("<option value='0'>请选择</option>");
+        $("#company").html("<option value='0'>请选择</option>");
+        $("#unit").html("<option value='0'>请选择</option>");
+
+        child_id = $("#child_type option:selected").val();
+        $.ajax({
+            type: 'post',
+            url: '{{ url_for('/kind/get_model_by_kind') }}',
+            data: JSON.stringify({"kind": child_id}),
+            contentType:"application/json",
+            success(data) {
+                for (var i = 0; i < data.length; i++)
+                    $("#model").append("<option value='" + data[i].id + "'>" + data[i].name + "</option>");
+                form.render('select')
+                form.render();
+            }
+        });
+    });
+
+    form.on('select(change_model)', function () {
+        $("#company").html("<option value='0'>请选择</option>");
+        $("#unit").html("<option value='0'>请选择</option>");
+
+        // 页面渲染判断参数
+        model_id = $("#model option:selected").val();
+        // 接口请求参数
+        child_id = $("#child_type option:selected").val();
+        $.ajax({
+            type: 'post',
+            url: '{{ url_for('/kind/get_model_by_kind') }}',
+            data: JSON.stringify({"kind": child_id}),
+            contentType:"application/json",
+            success(data) {
+                for (var i = 0; i < data.length; i++)
+                {
+                    if (data[i].id == model_id)
+                    {
+                        $("#company").append("<option value='" + data[i].company.id + "'>" + data[i].company.name + "</option>");
+                        $("#unit").append("<option value='" + data[i].unit.id + "'>" + data[i].unit.name + "</option>");
+                    }
+                }
                 form.render('select')
                 form.render();
             }
         });
     });
 });
-
-function load(){
-
-}
 </script>
 </body>
 </html>
