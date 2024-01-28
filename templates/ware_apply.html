@@ -147,9 +147,27 @@ layui.use(['form', 'laydate'], function () {
     });
 
     form.on('submit(sub)', function (data) {
-        layer.alert(JSON.stringify(data.field), {
-            title: '最终的提交信息'
-        })
+        $.ajax({
+            type: 'post',
+            headers: {
+                "Authorization": "Bearer " + localStorage.getItem("access_key")
+            },
+            url: '{{ url_for('/ware/apply') }}',
+            data: JSON.stringify(data),
+            contentType:"application/json",
+            success(data) {
+                if (data.code == 200)
+                {
+                    var index = layer.alert('提交成功', {title: '提交成功'}, function () {
+                        // 关闭弹出层
+                        layer.close(index);
+
+                        var iframeIndex = parent.layer.getFrameIndex(window.name);
+                        parent.layer.close(iframeIndex);
+                    });
+                }
+            }
+        });
         return false;
     });
 });

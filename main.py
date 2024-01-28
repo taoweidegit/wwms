@@ -1068,7 +1068,14 @@ def get_model_by_kind():
 
     lst = []
 
+    kind_entity = db.session.query(WareKind).filter(WareKind.id == kind).first()
+    top_kind_entity = db.session.query(WareKind).filter(WareKind.id == kind_entity.pid).first()
+
     model_list = db.session.query(_Model).filter(_Model.kind == kind).all()
+    if len(model_list) == 0:
+        kind = top_kind_entity.id
+        model_list = db.session.query(_Model).filter(_Model.kind == kind).all()
+
     for _model in model_list:
         item = {
             "id": _model.id,
@@ -1092,6 +1099,40 @@ def get_model_by_kind():
         lst.append(item)
 
     return jsonify(lst)
+
+
+@app.route('/ware/apply', methods=['POST'], endpoint='/ware/apply')
+@jwt_required()
+def apply_ware():
+    child_type = request.json.get("child_type")
+    mod = request.json.get("model")
+    quantity = request.json.get("quantity")
+
+    state = 'pending'
+
+    identity = get_jwt_identity()
+    uid = identity.get('uid')
+
+    apply = Apply()
+    apply.apply_quantity = quantity
+    apply.applicant = uid
+    apply.state = state
+    apply.application_time = datetime.now()
+
+    ware = db.session.query(Ware).filter(Ware.model == mod, Ware.kind == child_type).first()
+    apply.ware = ware.id
+
+    db.session.add(apply)
+    db.session.commit()
+
+    post_data = {
+        "uid": uid,
+        "form": apply.id
+    }
+    headers = {'Content-Type': 'application/json'}
+    requests.post(url='http://127.0.0.1:8080/process/model/apply/start', headers=headers, data=json.dumps(post_data))
+
+    return jsonify(code=Response.ok)
 
 
 @app.route('/plan/page/management', methods=['GET'], endpoint='plan_management_page')
@@ -1154,7 +1195,7 @@ def get_plan_list():
             i += 1
 
     response = {
-        "code": 200,
+        "code": Response.ok,
         "msg": "",
         "data": dlist,
         "count": len(dlist)
