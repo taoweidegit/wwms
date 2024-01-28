@@ -37,7 +37,9 @@
 
         <script type="text/html" id="toolbar">
             <div class="layui-btn-container">
-                <button class="layui-btn layui-btn-normal layui-btn-sm data-add-btn" lay-event="apply"> 申请 </button>
+                {% if has_start_plan==True %}
+                    <button class="layui-btn layui-btn-normal layui-btn-sm data-add-btn" lay-event="apply"> 申请 </button>
+                {% endif %}
                 <button class="layui-btn layui-btn-primary layui-btn-sm data-refresh-btn" lay-event="refresh"> 刷新 </button>
             </div>
         </script>
@@ -100,7 +102,7 @@
             return false;
         });
 
-        // 添加用户
+        // 申请备件
         table.on('toolbar(currentTableFilter)', function (obj) {
             if (obj.event === 'apply')
             {

@@ -10,7 +10,7 @@ from flask_jwt_extended import (JWTManager, jwt_required, create_access_token, g
                                 decode_token)
 from flask_sqlalchemy import SQLAlchemy
 from gevent import pywsgi
-from sqlalchemy import text, desc
+from sqlalchemy import text, desc, null
 
 from response_code import Response
 
@@ -153,6 +153,17 @@ class Apply(db.Model):
     ware = db.Column('Ware', db.Integer)
     apply_quantity = db.Column('ApplyQuantity', db.Integer)
     warehouse = db.Column('Warehouse', db.Integer)
+    apply_id = db.Column('ApplyId', db.String)
+    apply_start_id = db.Column('ApplyStartId', db.Integer)
+
+
+class ApplyStart(db.Model):
+    __tablename__ = 't_apply_start'
+
+    id = db.Column('ID', db.Integer, primary_key=True)
+    name = db.Column('Name', db.String)
+    start_date = db.Column('StartDate', db.DateTime)
+    end_date = db.Column('EndDate', db.DateTime)
 
 
 def send_message_with_logout(queue_listener):
@@ -466,9 +477,9 @@ def get_page_list():
 
             if sys_it == "all":
                 menuInfo_child["child"].append({
-                    "title": "备件录入",
-                    "href": "page/icon.html",
-                    "icon": "fa fa-dot-circle-o",
+                    "title": "备件采购管理",
+                    "href": f"{request.host_url}plan/page/management?jwt={request.values.get('jwt')}",
+                    "icon": "fa fa-cubes",
                     "target": "_self"
                 })
             menuInfo.append(menuInfo_child)
@@ -929,7 +940,13 @@ def remove_warehouse_administrator():
 
 @app.route('/ware/page/management', methods=['GET'], endpoint='ware_management_page')
 def ware_management_page():
-    return render_template("./ware_management.html")
+    if db.session.query(ApplyStart).count() == 0:
+        has_start_plan = False
+    else:
+        starting_plan = db.session.query(ApplyStart).filter(ApplyStart.end_date == None).first()
+        has_start_plan = starting_plan is not None
+
+    return render_template("./ware_management.html", has_start_plan=has_start_plan)
 
 
 @app.route('/ware/application', methods=['POST'], endpoint='ware/get_application')
@@ -1075,6 +1092,89 @@ def get_model_by_kind():
         lst.append(item)
 
     return jsonify(lst)
+
+
+@app.route('/plan/page/management', methods=['GET'], endpoint='plan_management_page')
+@jwt_required(locations=["query_string"])
+def plan_management_page():
+    identity = get_jwt_identity()
+    uid = identity.get('uid')
+
+    user = db.session.query(User).filter(User.id == uid).first()
+    if user is None:
+        return render_template("./404.html")
+
+    role = db.session.query(Role).filter(Role.id == user.role).first()
+    if role.rank > 1:
+        return render_template("./404.html")
+
+    if db.session.query(ApplyStart).count() != 0:
+        starting_plan = db.session.query(ApplyStart).filter(ApplyStart.end_date == None).first()
+        has_starting_plan = starting_plan is not None
+    else:
+        has_starting_plan = False
+
+    return render_template("./buying_plan_management.html", has_starting_plan=has_starting_plan)
+
+
+@app.route('/plan/get', methods=['GET'], endpoint='/plan/get_plan')
+def get_plan_list():
+    plan_list = db.session.query(ApplyStart).all()
+    dlist = []
+    i = 1
+    for plan in plan_list:
+        apply_list = db.session.query(Apply).filter(Apply.apply_start_id == plan.id).all()
+        dlist.append({
+            "id": i,
+            "_id": plan.id,
+            "name": plan.start_date if plan.end_date is None else f"{plan.start_date}/{plan.end_date}",
+            "applicant": "",
+            "eid": "",
+            "type": "",
+            "parentId": 0
+        })
+        parent_id = i
+
+        i += 1
+
+        for apply in apply_list:
+            ware = db.session.query(Ware).filter(Ware.id == apply.ware).first()
+            _model = db.session.query(_Model).filter(_Model.id == ware.model).first()
+            user = db.session.query(User).filter(User.id == apply.applicant).first()
+            kind = db.session.query(WareKind).filter(WareKind.id == _model.kind).first()
+            dlist.append({
+                "id": i,
+                "_id": apply.id,
+                "name": _model.name,
+                "applicant": user.name,
+                "eid": user.employee_id,
+                "type": kind.name if kind is not None else "",
+                "parentId": parent_id
+            })
+            i += 1
+
+    response = {
+        "code": 200,
+        "msg": "",
+        "data": dlist,
+        "count": len(dlist)
+    }
+    return jsonify(response)
+
+
+@app.route('/plan/start', methods=['POST'], endpoint='/plan/start_plan')
+def start_plan():
+    apply_start = ApplyStart()
+    apply_start.start_date = datetime.now()
+    db.session.add(apply_start)
+    db.session.commit()
+
+    return jsonify(code=200)
+
+
+@app.route('/plan/end', methods=['POST'], endpoint='/plan/end_plan')
+def end_plan():
+    pass
 
 
 if __name__ == '__main__':
