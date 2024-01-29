@@ -976,8 +976,8 @@ def get_ware_application():
         applicant_user = user.name
         apply_id = apply.id
 
-        quantity = apply.quantity if apply.quantity is None else ''
-        apply_quantity = apply.apply_quantity
+        apply_quantity = str(apply.apply_quantity) if apply.apply_quantity is not None else ''
+        ware_quantity = str(apply.ware_quantity) if apply.ware_quantity is not None else '0'
         warehousing_time = apply.warehousing_time
 
         ware = db.session.query(Ware).filter(Ware.id == apply.ware).first()
@@ -991,7 +991,7 @@ def get_ware_application():
                 ware_company = "无"
 
             if _model.unit is not None:
-                unit = db.session.query(Unit).filter(Unit.id == _model.unit)
+                unit = db.session.query(Unit).filter(Unit.id == _model.unit).first()
                 _unit = unit.name
             else:
                 _unit = "件"
@@ -1012,7 +1012,7 @@ def get_ware_application():
         data.append({
             "id": apply_id,
             "applicant": applicant_user,
-            "quantity": quantity,
+            "ware_quantity": ware_quantity,
             "apply_quantity": apply_quantity,
             "time": warehousing_time,
             "model": ware_model,

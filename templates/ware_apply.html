@@ -148,14 +148,14 @@ layui.use(['form', 'laydate'], function () {
 
     form.on('submit(sub)', function (data) {
         $.ajax({
-            type: 'post',
+            type: 'POST',
             headers: {
                 "Authorization": "Bearer " + localStorage.getItem("access_key")
             },
             url: '{{ url_for('/ware/apply') }}',
-            data: JSON.stringify(data),
-            contentType:"application/json",
-            success(data) {
+            data: JSON.stringify(data.field),
+            contentType: "application/json",
+            success: function(data) {
                 if (data.code == 200)
                 {
                     var index = layer.alert('提交成功', {title: '提交成功'}, function () {
