@@ -978,7 +978,8 @@ def get_ware_application():
 
         apply_quantity = str(apply.apply_quantity) if apply.apply_quantity is not None else ''
         ware_quantity = str(apply.ware_quantity) if apply.ware_quantity is not None else '0'
-        warehousing_time = apply.warehousing_time
+        # warehousing_time = apply.warehousing_time
+        apply_time = apply.application_time
 
         ware = db.session.query(Ware).filter(Ware.id == apply.ware).first()
         if ware.model is not None:
@@ -1014,7 +1015,7 @@ def get_ware_application():
             "applicant": applicant_user,
             "ware_quantity": ware_quantity,
             "apply_quantity": apply_quantity,
-            "time": warehousing_time,
+            "time": apply_time,
             "model": ware_model,
             "company": ware_company,
             "item_number": ware_number,
@@ -1172,7 +1173,9 @@ def get_plan_list():
             "applicant": "",
             "eid": "",
             "type": "",
-            "parentId": 0
+            "apply_num": "",
+            "parentId": 0,
+            "is_pass": "none"
         })
         parent_id = i
 
@@ -1183,14 +1186,32 @@ def get_plan_list():
             _model = db.session.query(_Model).filter(_Model.id == ware.model).first()
             user = db.session.query(User).filter(User.id == apply.applicant).first()
             kind = db.session.query(WareKind).filter(WareKind.id == _model.kind).first()
+
+            # 获取flowable状态
+            r = requests.get(f'http://127.0.0.1:8080/process/model/apply/state?form={apply.id}')
+            if r.content.decode() == '200':
+                # 同意
+                is_pass = 'yes'
+            elif r.content.decode() == '202':
+                is_pass = 'none'
+                # 未抵达计量专员
+            elif r.content.decode() == '203':
+                # 抵达计量专员,未处理
+                is_pass = 'uncheck'
+            elif r.content.decode() == '201':
+                # 拒绝
+                is_pass = 'no'
+
             dlist.append({
                 "id": i,
                 "_id": apply.id,
                 "name": _model.name,
                 "applicant": user.name,
                 "eid": user.employee_id,
+                "apply_num": apply.apply_quantity,
                 "type": kind.name if kind is not None else "",
-                "parentId": parent_id
+                "parentId": parent_id,
+                "is_pass": is_pass
             })
             i += 1
 

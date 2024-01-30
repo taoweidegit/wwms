@@ -48,6 +48,11 @@
             </div>
         </script>
         <table class="layui-hide" id = "buying_plan_table" lay-filter="currentTableFilter"></table>
+
+<!--        <script type="text/html" id="opt">-->
+<!--            <button type="button" class="layui-btn layui-btn-normal" style="position: relative;bottom: 5px;">修改</button>-->
+<!--            <button type="button" class="layui-btn layui-btn-danger" style="position: relative;bottom: 5px;">删除</button>-->
+<!--        </script>-->
     </div>
 </div>
 <script src="{{ url_for('static', filename = 'layui/lib/layui-v2.6.3/layui.js') }}" charset="utf-8"></script>
@@ -75,11 +80,23 @@
                 page: false,
                 cols: [ [
                     {type: 'radio'},
-                    {field: 'name', title: '名称'},
-                    {field: 'type' , title: '类别'},
-                    {field: 'eid' , title: '工号'},
-                    {field: 'applicant', title: '申请人'},
+                    {field: 'name', title: '名称', align: 'center'},
+                    {field: 'type' , title: '类别', align: 'center'},
+                    {field: 'eid' , title: '工号', align: 'center'},
+                    {field: 'applicant', title: '申请人', align: 'center'},
+                    {field: 'apply_num', title: '申请数量', align: 'center'},
                     {field: '_id', title: 'ID', hide: true},
+                    {title: '操作', align: 'center', templet: function(d){
+                        if (d.is_pass == 'yes')
+                            return '通过'
+                        else if (d.is_pass == 'no')
+                            return '未通过'
+                        else if (d.is_pass == 'none')
+                            return ''
+                        else
+                            return '<button type="button" class="layui-btn layui-btn-normal" style="position: relative;bottom: 5px;">通过</button>'
+                                    + '<button type="button" class="layui-btn layui-btn-danger" style="position: relative;bottom: 5px;">拒绝</button>'
+                    }}
                 ] ],
                 //数据渲染完的回调
                 done: function () {
