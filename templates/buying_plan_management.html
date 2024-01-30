@@ -68,7 +68,7 @@
             treetable.render({
                 height: 'full-160',
                 id:'menu',
-                treeColIndex: 1,    //树形图标显示在第几列
+                treeColIndex: 0,    //树形图标显示在第几列
                 treeSpid: '0',      //最上级的父级id
                 treeIdName: 'id',   //id字段的名称
                 treePidName: 'parentId',    //父级节点字段
@@ -79,7 +79,7 @@
                 toolbar: '#toolbar',
                 page: false,
                 cols: [ [
-                    {type: 'radio'},
+<!--                    {type: 'radio'},-->
                     {field: 'name', title: '名称', align: 'center'},
                     {field: 'type' , title: '类别', align: 'center'},
                     {field: 'eid' , title: '工号', align: 'center'},
@@ -90,7 +90,7 @@
                         if (d.is_pass == 'yes')
                             return '通过'
                         else if (d.is_pass == 'no')
-                            return '未通过'
+                            return '拒绝'
                         else if (d.is_pass == 'none')
                             return ''
                         else
