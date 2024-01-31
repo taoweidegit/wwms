@@ -1120,7 +1120,7 @@ def apply_ware():
     apply.state = state
     apply.application_time = datetime.now()
 
-    ware = db.session.query(Ware).filter(Ware.model == mod, Ware.kind == child_type).first()
+    ware = db.session.query(Ware).filter(Ware.model == mod).first()
     apply.ware = ware.id
 
     db.session.add(apply)
