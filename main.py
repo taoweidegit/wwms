@@ -1250,6 +1250,20 @@ def accept_apply():
     return jsonify(code=Response.ok)
 
 
+@app.route('/ware/application/reject', methods=['POST'], endpoint='/ware/reject')
+def accept_apply():
+    apply_id = request.json.get('apply')
+
+    apply = db.session.query(Apply).filter(Apply.id == apply_id).first()
+    if apply is not None:
+        apply.state = 'cancel'
+        db.session.commit()
+
+        requests.get(f'http://127.0.0.1:8080/process/model/apply/reject?applyId={apply.id}')
+
+    return jsonify(code=Response.ok)
+
+
 if __name__ == '__main__':
     port = int(cfg['server']['port'])
     server = pywsgi.WSGIServer(('0.0.0.0', port), app)

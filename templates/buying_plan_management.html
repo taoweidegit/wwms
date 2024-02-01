@@ -130,7 +130,18 @@
         }
 
         window.reject = function(_id){
-            alert(_id)
+            data = {"apply": _id}
+            $.ajax({
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(data),
+                url: "{{ url_for('/ware/reject') }}",
+                success: function(result) {
+                    var code = result.code;
+                    if (code == 200)
+                        window.location.reload();
+                }
+            });
         }
     });
 </script>
