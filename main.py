@@ -984,7 +984,10 @@ def get_ware_application():
         ware = db.session.query(Ware).filter(Ware.id == apply.ware).first()
         if ware.model is not None:
             _model = db.session.query(_Model).filter(_Model.id == ware.model).first()
+            kind = db.session.query(WareKind).filter(WareKind.id == ware.kind).first()
             ware_model = _model.name
+            ware_kind = kind.name
+
             if _model.company is not None:
                 company = db.session.query(Company).filter(Company.id == _model.company).first()
                 ware_company = company.name
@@ -1000,6 +1003,7 @@ def get_ware_application():
             ware_model = "无"
             ware_company = "无"
             _unit = "件"
+            ware_kind = ""
 
         ware_number = ware.item_number if ware.item_number is not None else '-'
 
@@ -1023,7 +1027,8 @@ def get_ware_application():
             "item_number": ware_number,
             "unit_name": _unit,
             "warehouse": warehouse_name,
-            "state": state
+            "state": state,
+            "ware_kind": ware_kind
         })
 
     response = {
