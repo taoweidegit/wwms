@@ -22,7 +22,8 @@
                             <div class="layui-input-inline">
                                 <select id="form_select" name="apply_state" class="layui-input">
                                     <option value="pending" selected="">核准中</option>
-                                    <option value="cancel">已取消</option>
+                                    <option value="approving">车间批准</option>
+                                    <option value="cancel">被拒</option>
                                     <option value="done">已入库</option>
                                 </select>
                             </div>
@@ -45,10 +46,6 @@
         </script>
 
         <table class="layui-hide" id="ware_apply_table" lay-filter="currentTableFilter"></table>
-
-        <script type="text/html" id="currentTableBar">
-            <a class="layui-btn layui-btn-normal layui-btn-xs data-count-edit" lay-event="edit">状态</a>
-        </script>
     </div>
 </div>
 <script src="{{ url_for('static', filename = 'layui/lib/layui-v2.6.3/layui.js') }}" charset="utf-8"></script>
@@ -74,7 +71,16 @@
                 {field: 'company', width: 200, title: '厂家', align: 'center'},
                 {field: 'item_number', width: 200, title: '料号', align: 'center'},
                 {field: 'time', width: 200, title: '申请时间', sort: true, align: 'center'},
-                {title: '操作', minWidth: 150, toolbar: '#currentTableBar', align: "center"}
+                {field: 'state', width: 300, title: '状态', align: 'center', templet: function(d){
+                    if (d.state == 'approving')
+                        return '计量审核通过,等待事业部审核'
+                    else if (d.state == 'pending')
+                        return '已提交,等待车间计量审核'
+                    else if (d.state == 'done')
+                        return '已入库'
+                    else if (d.state == 'cancel')
+                        return '申请被拒'
+                }}
             ]],
             limits: [10, 15, 20, 25, 50, 100],
             limit: 15,

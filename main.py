@@ -1010,6 +1010,8 @@ def get_ware_application():
         else:
             warehouse_name = '无'
 
+        state = apply.state
+
         data.append({
             "id": apply_id,
             "applicant": applicant_user,
@@ -1020,7 +1022,8 @@ def get_ware_application():
             "company": ware_company,
             "item_number": ware_number,
             "unit_name": _unit,
-            "warehouse": warehouse_name
+            "warehouse": warehouse_name,
+            "state": state
         })
 
     response = {
@@ -1245,6 +1248,9 @@ def accept_apply():
 
     apply = db.session.query(Apply).filter(Apply.id == apply_id).first()
     if apply is not None:
+        apply.state = 'approving'
+        db.session.commit()
+
         requests.get(f'http://127.0.0.1:8080/process/model/apply/accept?applyId={apply.id}')
 
     return jsonify(code=Response.ok)
