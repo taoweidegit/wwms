@@ -12,36 +12,11 @@
 <body>
 <div class="layuimini-container">
     <div class="layuimini-main">
-        <fieldset class="table-search-fieldset">
-            <legend>搜索信息</legend>
-            <div style="margin: 10px 10px 10px 10px">
-                <form class="layui-form layui-form-pane" action="">
-                    <div class="layui-form-item">
-                        <div class="layui-inline">
-                            <label class="layui-form-label">用户姓名</label>
-                            <div class="layui-input-inline">
-                                <input type="text" name="username" autocomplete="off" class="layui-input">
-                            </div>
-                        </div>
-                        <div class="layui-inline">
-                            <label class="layui-form-label">部门</label>
-                            <div class="layui-input-inline">
-                                <select id="form_select" name="department" class="layui-input">
-                                </select>
-                            </div>
-                        </div>
-                        <div class="layui-inline">
-                            <button type="submit" class="layui-btn layui-btn-primary" lay-submit lay-filter="data-search-btn"><i class="layui-icon"></i> 搜 索</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </fieldset>
-
         <script type="text/html" id="toolbar">
             <div class="layui-btn-container">
                 {% if has_starting_plan==False %}
                     <button class="layui-btn layui-btn-normal layui-btn-sm data-add-btn" lay-event="start"> 开启 </button>
+                    <button class="layui-btn layui-btn-primary layui-btn-sm data-down-btn" lay-event="download"> 下载 </button>
                 {% else %}
                     <button class="layui-btn layui-btn-danger layui-btn-sm data-refresh-btn" lay-event="end"> 关闭 </button>
                 {% endif %}
@@ -111,6 +86,21 @@
                     if (code == 200)
                         window.location.reload();
                 });
+            }
+            else if (obj.event === 'end')
+            {
+                $.post('{{ url_for("/plan/end_plan") }}', function(data){
+                    var code = data.code;
+                    if (code == 200)
+                        window.location.reload();
+
+                    if (code == 500)
+                        layer.msg('fail')
+                });
+            }
+            else if(obj.event === 'download')
+            {
+                window.location.href = '{{ url_for("/plan/download") }}';
             }
         });
 

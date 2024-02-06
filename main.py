@@ -2,10 +2,11 @@ import json
 import os
 from datetime import datetime, timedelta
 
+import oss2
 import requests
 import stomp
 import yaml
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_file
 from flask_jwt_extended import (JWTManager, jwt_required, create_access_token, get_jwt_identity, create_refresh_token,
                                 decode_token)
 from flask_sqlalchemy import SQLAlchemy
@@ -26,7 +27,7 @@ db_port = cfg['mysql']['port']
 db_database = cfg['mysql']['database']
 app.config["SQLALCHEMY_DATABASE_URI"] \
     = f"mysql+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_database}?charset=utf8"
-app.config["SQLALCHEMY_ECHO"] = True
+app.config["SQLALCHEMY_ECHO"] = False
 db = SQLAlchemy(app)
 
 app.config['JWT_SECRET_KEY'] = 'twei3131'
@@ -490,17 +491,16 @@ def get_page_list():
                 "icon": "fa fa-slideshare",
                 "href": "",
                 "target": "_self",
-                "child": [
-                    {
-                        "title": "备件使用申请",
-                        "href": "page/error.html",
-                        "icon": "fa fa-superpowers",
-                        "target": "_self"
-                    }
-                ]
+                "child": []
             }
 
             if sys_it == "all":
+                menuInfo_child["child"].append({
+                    "title": "备件入库",
+                    "href": f"{request.host_url}stock/page/instock",
+                    "icon": "fa fa-superpowers",
+                    "target": "_self"
+                })
                 menuInfo_child["child"].append({
                     "title": "仓库管理",
                     "href": f'{request.host_url}warehouse/page/warehouse?jwt={request.values.get("jwt")}',
@@ -979,7 +979,7 @@ def get_ware_application():
         apply_quantity = str(apply.apply_quantity) if apply.apply_quantity is not None else ''
         ware_quantity = str(apply.ware_quantity) if apply.ware_quantity is not None else '0'
         # warehousing_time = apply.warehousing_time
-        apply_time = apply.application_time
+        apply_time = apply.application_time.strftime("%Y-%m-%d %H:%M:%S")
 
         ware = db.session.query(Ware).filter(Ware.id == apply.ware).first()
         if ware.model is not None:
@@ -1138,8 +1138,16 @@ def apply_ware():
         "uid": uid,
         "form": apply.id
     }
-    headers = {'Content-Type': 'application/json'}
-    requests.post(url='http://127.0.0.1:8080/process/model/apply/start', headers=headers, data=json.dumps(post_data))
+
+    try:
+        headers = {'Content-Type': 'application/json'}
+        requests.post(url='http://127.0.0.1:8080/process/model/apply/start', headers=headers,
+                      data=json.dumps(post_data))
+    except:
+        _apply = db.session.query(Apply).filter(Apply.id == apply.id).first()
+        db.session.delete(_apply)
+        db.session.commit()
+        return jsonify(code=Response.error)
 
     return jsonify(code=Response.ok)
 
@@ -1169,15 +1177,22 @@ def plan_management_page():
 
 @app.route('/plan/get', methods=['GET'], endpoint='/plan/get_plan')
 def get_plan_list():
-    plan_list = db.session.query(ApplyStart).all()
+    plan_list = (
+        db.session.query(ApplyStart).filter(ApplyStart.start_date >= datetime.now() - timedelta(days=90)).all())
     dlist = []
     i = 1
     for plan in plan_list:
+        start_date, end_date = None, None
+        if plan.start_date is not None:
+            start_date = plan.start_date.strftime("%Y-%m-%d")
+        if plan.end_date is not None:
+            end_date = plan.end_date.strftime("%Y-%m-%d")
+
         apply_list = db.session.query(Apply).filter(Apply.apply_start_id == plan.id).all()
         dlist.append({
             "id": i,
             "_id": plan.id,
-            "name": plan.start_date if plan.end_date is None else f"{plan.start_date}/{plan.end_date}",
+            "name": start_date if plan.end_date is None else f"{start_date}/{end_date}",
             "applicant": "",
             "eid": "",
             "type": "",
@@ -1244,7 +1259,38 @@ def start_plan():
 
 @app.route('/plan/end', methods=['POST'], endpoint='/plan/end_plan')
 def end_plan():
-    pass
+    plan = db.session.query(ApplyStart).filter(ApplyStart.end_date == None).first()
+    if plan is not None:
+        apply_start_id = plan.id
+        wait_approval_apply_list = (
+            db.session.query(Apply).filter(Apply.apply_start_id == apply_start_id, Apply.state == 'pending').all())
+        id_list = []
+        for wait_approval_apply in wait_approval_apply_list:
+            id_list.append(wait_approval_apply.apply_id)
+
+        post_data = {
+            "data": id_list
+        }
+        headers = {'Content-Type': 'application/json'}
+        flag = True
+        try:
+            requests.post(url='http://127.0.0.1:8080/process/plan/apply/end', headers=headers,
+                          data=json.dumps(post_data))
+        except:
+            flag = False
+            return jsonify(code=Response.error)
+
+        if flag:
+            # 下载各个备件申请的excel表格
+            try:
+                requests.get(f'http://127.0.0.1:8080/process/plan/end/excel?planId={apply_start_id}')
+            except:
+                return jsonify(code=Response.error)
+
+        plan.end_date = datetime.now()
+        db.session.commit()
+
+    return jsonify(code=Response.ok)
 
 
 @app.route('/ware/application/accept', methods=['POST'], endpoint='/ware/accept')
@@ -1256,7 +1302,13 @@ def accept_apply():
         apply.state = 'approving'
         db.session.commit()
 
-        requests.get(f'http://127.0.0.1:8080/process/model/apply/accept?applyId={apply.id}')
+        try:
+            requests.get(f'http://127.0.0.1:8080/process/model/apply/accept?applyId={apply.id}')
+        except:
+            _apply = db.session.query(Apply).filter(Apply.id == apply_id).first()
+            apply.state = 'pending'
+            db.session.commit()
+            return jsonify(code=Response.error)
 
     return jsonify(code=Response.ok)
 
@@ -1270,9 +1322,34 @@ def accept_apply():
         apply.state = 'cancel'
         db.session.commit()
 
-        requests.get(f'http://127.0.0.1:8080/process/model/apply/reject?applyId={apply.id}')
+        try:
+            requests.get(f'http://127.0.0.1:8080/process/model/apply/reject?applyId={apply.id}')
+        except:
+            _apply = db.session.query(Apply).filter(Apply.id == apply_id).first()
+            apply.state = 'pending'
+            db.session.commit()
+            return jsonify(code=Response.error)
 
     return jsonify(code=Response.ok)
+
+
+@app.route('/plan/download', methods=['GET'], endpoint='/plan/download')
+def download_excel_plan():
+    access_key_id = 'LTAI5tFL2ZNX4etwRnV65GkJ'
+    access_key_secret = 'pCSMAFuTbLKbGmBvr7Ad0OXJsKZx97'
+    auth = oss2.Auth(access_key_id=access_key_id, access_key_secret=access_key_secret)
+
+    endpoint = 'https://oss-cn-hangzhou.aliyuncs.com'
+    bucket = oss2.Bucket(auth, endpoint, 'wmms')
+    download_file_path = './采购计划.xlsx'
+    bucket.get_object_to_file('采购计划.xlsx', download_file_path)
+
+    return send_file(download_file_path, as_attachment=True)
+
+
+@app.route('/stock/page/instock', methods=['GET'], endpoint='/in_stock_page')
+def in_stock_page():
+    return render_template('./in_stock.html')
 
 
 if __name__ == '__main__':

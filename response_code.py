@@ -9,3 +9,4 @@ class Response:
 
     repeat_warehouse = 501
     repeat_warehouse_admin = 502
+    error = 500
