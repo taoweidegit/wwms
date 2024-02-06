@@ -89,13 +89,17 @@
             }
             else if (obj.event === 'end')
             {
-                $.post('{{ url_for("/plan/end_plan") }}', function(data){
-                    var code = data.code;
-                    if (code == 200)
-                        window.location.reload();
-
-                    if (code == 500)
-                        layer.msg('fail')
+                $.ajax({
+                    url: '{{ url_for("/plan/end_plan") }}',
+                    type: 'post',
+                    timeout: 10000,
+                    success: function(data){
+                        var code = data.code;
+                        if (code == 200)
+                            window.location.reload();
+                        else if (code == 500)
+                            layer.msg('fail');
+                    }
                 });
             }
             else if(obj.event === 'download')
