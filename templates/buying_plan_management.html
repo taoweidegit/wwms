@@ -18,8 +18,9 @@
                     <button class="layui-btn layui-btn-normal layui-btn-sm data-add-btn" lay-event="start"> 开启 </button>
                     <button class="layui-btn layui-btn-primary layui-btn-sm data-down-btn" lay-event="download"> 下载 </button>
                 {% else %}
-                    <button class="layui-btn layui-btn-danger layui-btn-sm data-refresh-btn" lay-event="end"> 关闭 </button>
+                    <button class="layui-btn layui-btn-danger layui-btn-sm data-end-btn" lay-event="end"> 关闭 </button>
                 {% endif %}
+                <button class="layui-btn layui-btn-danger layui-btn-sm data-refresh-btn" lay-event="refresh"> 刷新 </button>
             </div>
         </script>
         <table class="layui-hide" id = "buying_plan_table" lay-filter="currentTableFilter"></table>
@@ -105,6 +106,10 @@
             else if(obj.event === 'download')
             {
                 window.location.href = '{{ url_for("/plan/download") }}';
+            }
+            else if(obj.event === 'refresh')
+            {
+                window.location.reload();
             }
         });
 
