@@ -3,8 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <title>入库管理</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename = 'layui/lib/layui-v2.6.3/css/layui.css') }}" media="all">
+    <link rel="stylesheet" href="{{ url_for('static', filename = 'layui/css/public.css') }}" media="all">
 </head>
 <body>
+<div class="layuimini-container">
+    <div class="layuimini-main">
+        <fieldset class="table-search-fieldset">
+            <legend>搜索信息</legend>
+            <div style="margin: 10px 10px 10px 10px">
+                <form class="layui-form layui-form-pane" action="">
+                    <div class="layui-form-item">
+                        <div class="layui-inline">
+                            <label class="layui-form-label">申请人</label>
+                            <div class="layui-input-inline">
+                                <select id="form_applicant_select" name="applicant" class="layui-input" lay-filter="change_applicant"></select>
+                            </div>
+                        </div>
+                        <div class="layui-inline">
+                            <label class="layui-form-label">备件类别</label>
+                            <div class="layui-input-inline">
+                                <select id="form_type_select" name="type" class="layui-input" lay-filter="change_type"></select>
+                            </div>
+                        </div>
+                        <div class="layui-inline">
+                            <button type="submit" class="layui-btn layui-btn-primary"  lay-submit lay-filter="data-search-btn"><i class="layui-icon"></i> 搜 索</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </fieldset>
 
+        <script type="text/html" id="toolbar">
+            <div class="layui-btn-container">
+                <button class="layui-btn layui-btn-normal layui-btn-sm data-add-btn" lay-event="add"> 添加 </button>
+                <button class="layui-btn layui-btn-primary layui-btn-sm data-refresh-btn" lay-event="refresh"> 刷新 </button>
+            </div>
+        </script>
+        <table class="layui-hide" id="stock_table" lay-filter="currentTableFilter"></table>
+        <script type="text/html" id="currentTableBar">
+            <a class="layui-btn layui-btn-normal layui-btn-xs data-count-edit" lay-event="save">准备入库</a>
+        </script>
+    </div>
+</div>
 </body>
+<script src="{{ url_for('static', filename = 'layui/lib/layui-v2.6.3/layui.js') }}" charset="utf-8"></script>
+<script src="{{ url_for('static', filename = 'layui/js/lay-config.js') }}" charset="utf-8"></script>
+<script>
+    layui.use(['form', 'table'], function () {
+        var $ = layui.jquery,
+            form = layui.form,
+            table = layui.table;
+
+        $.get('{{ url_for('/stock/get_stock_applicant') }}', function(data){
+            $("#form_applicant_select").append("<option value='0'>请选择</option>")
+            for (var i = 0; i < data.length; i++)
+                $("#form_applicant_select").append("<option value='" + data[i].id + "'>" + data[i].name + "</option>>");
+            form.render('select')
+            form.render();
+        });
+
+        form.on('select(change_applicant)', function () {
+            $("#form_type_select").html("<option value='0'>请选择</option>");
+            $("#form_model_select").html("<option value='0'>请选择</option>");
+
+            applicant_id = $("#form_applicant_select option:selected").val();
+            $.ajax({
+                type: 'get',
+                url: '{{ url_for('/stock/get_type_by_applicant') }}?applicant=' + applicant_id,
+                success(data) {
+                    for (var i = 0; i < data.length; i++)
+                        $("#form_type_select").append("<option value='" + data[i].id + "'>" + data[i].name + "</option>");
+                    form.render('select')
+                    form.render();
+                }
+            });
+        });
+
+        table.render({
+            elem: '#stock_table',
+            url: '{{ url_for('/stock/get_apply_by_applicant_and_type') }}',
+            toolbar: '#toolbar',
+            cols: [[
+<!--                {type: "checkbox", width: 50},-->
+                {field: 'id', width: 200, title: 'ID', hide: true},
+                {field: 'applicant', width: 200, title: '申请人', align: 'center'},
+                {field: 'department', width: 200, title: '部门', sort: true, align: 'center'},
+                {field: 'kind', width: 200, title: '备件名称', align: 'center'},
+                {field: 'model', title: '型号', width: 200, align: 'center', edit: 'text'},
+                {field: 'company', title: '厂家名称', width: 200, align: 'center', edit: 'text'},
+                {field: 'quantity', title: '数量', width: 200, align: 'center', edit: 'text'},
+                {title: '操作', minWidth: 150, toolbar: '#currentTableBar', align: "center"}
+            ]],
+            limits: [10, 15, 20, 25, 50, 100],
+            limit: 15,
+            page: true,
+            skin: 'line'
+        });
+
+        form.on('submit(data-search-btn)', function (data) {
+            result = JSON.stringify(data.field);
+            //执行搜索重载
+            table.reload('stock_table', {
+                page: {
+                    curr: 1
+                },
+                where: {
+                    searchParams: result,
+                }
+            }, 'data');
+            return false;
+        });
+
+        table.on('tool(currentTableFilter)', function (obj) {
+            var data = obj.data;
+            if (obj.event === 'save') {
+
+                return false;
+            }
+        });
+
+         table.on('toolbar(currentTableFilter)', function (obj) {
+            if (obj.event === 'add')
+            {
+                // 监听添加操作
+
+            }
+            else if (obj.event === 'refresh')
+            {
+                // 刷新
+                window.location.reload()
+            }
+        });
+    })
+</script>
 </html>

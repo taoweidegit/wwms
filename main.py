@@ -167,6 +167,17 @@ class ApplyStart(db.Model):
     end_date = db.Column('EndDate', db.DateTime)
 
 
+class Inventory(db.Model):
+    __tablename__ = 't_inventory'
+
+    id = db.Column('ID', db.Integer, primary_key=True)
+    name = db.Column('Model', db.String)
+    state = db.Column('State', db.String)
+    shelve = db.Column('Shelve', db.Integer)
+    production_number = db.Column('ProductionNumber', db.String)
+    _apply = db.Column('Apply', db.Integer)
+
+
 def send_message_with_logout(queue_listener):
     requests.get(f'http://127.0.0.1:8080/queue/sendMessage?queueName={queue_listener}&&message=logout')
 
@@ -1210,20 +1221,25 @@ def get_plan_list():
             user = db.session.query(User).filter(User.id == apply.applicant).first()
             kind = db.session.query(WareKind).filter(WareKind.id == _model.kind).first()
 
+            is_pass = 'none'
+
             # 获取flowable状态
-            r = requests.get(f'http://127.0.0.1:8080/process/model/apply/state?form={apply.id}')
-            if r.content.decode() == '200':
-                # 同意
-                is_pass = 'yes'
-            elif r.content.decode() == '202':
-                is_pass = 'none'
-                # 未抵达计量专员
-            elif r.content.decode() == '203':
-                # 抵达计量专员,未处理
-                is_pass = 'uncheck'
-            elif r.content.decode() == '201':
-                # 拒绝
-                is_pass = 'no'
+            try:
+                r = requests.get(f'http://127.0.0.1:8080/process/model/apply/state?form={apply.id}')
+                if r.content.decode() == '200':
+                    # 同意
+                    is_pass = 'yes'
+                elif r.content.decode() == '202':
+                    is_pass = 'none'
+                    # 未抵达计量专员
+                elif r.content.decode() == '203':
+                    # 抵达计量专员,未处理
+                    is_pass = 'uncheck'
+                elif r.content.decode() == '201':
+                    # 拒绝
+                    is_pass = 'no'
+            except:
+                pass
 
             dlist.append({
                 "id": i,
@@ -1268,24 +1284,21 @@ def end_plan():
         for wait_approval_apply in wait_approval_apply_list:
             id_list.append(wait_approval_apply.apply_id)
 
-        post_data = {
-            "data": id_list
-        }
-        headers = {'Content-Type': 'application/json'}
-        flag = True
         try:
+            post_data = {
+                "data": id_list
+            }
+            headers = {'Content-Type': 'application/json'}
             requests.post(url='http://127.0.0.1:8080/process/plan/apply/end', headers=headers,
                           data=json.dumps(post_data))
         except:
-            flag = False
             return jsonify(code=Response.error)
 
-        if flag:
-            # 下载各个备件申请的excel表格
-            try:
-                requests.get(f'http://127.0.0.1:8080/process/plan/end/excel?planId={apply_start_id}')
-            except:
-                return jsonify(code=Response.error)
+        # 下载各个备件申请的excel表格
+        try:
+            requests.get(f'http://127.0.0.1:8080/process/plan/end/excel?planId={apply_start_id}')
+        except:
+            return jsonify(code=Response.error)
 
         plan.end_date = datetime.now()
         db.session.commit()
@@ -1299,35 +1312,23 @@ def accept_apply():
 
     apply = db.session.query(Apply).filter(Apply.id == apply_id).first()
     if apply is not None:
-        apply.state = 'approving'
-        db.session.commit()
-
         try:
             requests.get(f'http://127.0.0.1:8080/process/model/apply/accept?applyId={apply.id}')
         except:
-            _apply = db.session.query(Apply).filter(Apply.id == apply_id).first()
-            apply.state = 'pending'
-            db.session.commit()
             return jsonify(code=Response.error)
 
     return jsonify(code=Response.ok)
 
 
 @app.route('/ware/application/reject', methods=['POST'], endpoint='/ware/reject')
-def accept_apply():
+def reject_apply():
     apply_id = request.json.get('apply')
 
     apply = db.session.query(Apply).filter(Apply.id == apply_id).first()
     if apply is not None:
-        apply.state = 'cancel'
-        db.session.commit()
-
         try:
             requests.get(f'http://127.0.0.1:8080/process/model/apply/reject?applyId={apply.id}')
         except:
-            _apply = db.session.query(Apply).filter(Apply.id == apply_id).first()
-            apply.state = 'pending'
-            db.session.commit()
             return jsonify(code=Response.error)
 
     return jsonify(code=Response.ok)
@@ -1350,6 +1351,102 @@ def download_excel_plan():
 @app.route('/stock/page/instock', methods=['GET'], endpoint='/in_stock_page')
 def in_stock_page():
     return render_template('./in_stock.html')
+
+
+@app.route('/stock/applicant/get', methods=['GET'], endpoint='/stock/get_stock_applicant')
+def get_stock_applicant():
+    apply_list = (
+        db.session.query(Apply)
+        .filter(Apply.application_time >= datetime.now() - timedelta(days=30 * 6), Apply.state == 'approving')
+        .all())
+    applicant_list = list()
+    for apply in apply_list:
+        user = db.session.query(User).filter(User.id == apply.applicant).first()
+        if user.id in [item["id"] for item in applicant_list]:
+            continue
+        applicant_list.append({"id": user.id, "name": user.name})
+    return jsonify(applicant_list)
+
+
+@app.route('/stock/type/get', methods=['GET'], endpoint='/stock/get_type_by_applicant')
+def get_type_by_applicant():
+    applicant = request.values.get('applicant')
+    apply_list = (db.session.query(Apply)
+                  .filter(Apply.applicant == applicant,
+                          Apply.state == 'approving',
+                          Apply.application_time >= datetime.now() - timedelta(days=30 * 6))
+                  .all())
+    type_list = []
+    for apply in apply_list:
+        ware = db.session.query(Ware).filter(Ware.id == apply.ware).first()
+        ware_kind = db.session.query(WareKind).filter(WareKind.id == ware.kind).first()
+        if ware_kind.id in [item["id"] for item in type_list]:
+            continue
+        type_list.append({"id": ware_kind.id, "name": ware_kind.name})
+    return jsonify(type_list)
+
+
+@app.route('/stock/instock/apply', methods=['GET'], endpoint='/stock/get_apply_by_applicant_and_type')
+def get_apply_by_applicant_and_type():
+    page = 1 if request.args.get("page") is None else int(request.args.get("page"))
+    limit = 10 if request.args.get("limit") is None else int(request.args.get("limit"))
+
+    data = []
+
+    if request.args.get("searchParams") is None:
+        apply_list = (
+            db.session.query(Apply)
+            .filter(
+                Apply.application_time >= datetime.now() - timedelta(days=30 * 6),
+                Apply.state == 'approving'
+            )
+            .order_by(desc(Apply.application_time))
+            .paginate(page=page, per_page=limit)
+            .items)
+    else:
+        json_obj = json.loads(request.args.get("searchParams"))
+        kind = db.session.query(WareKind).filter(WareKind.id == json_obj['type']).first()
+        ware = db.session.query(Ware).filter(Ware.kind == kind.id).first()
+        apply_list = (
+            db.session.query(Apply)
+            .filter(
+                Apply.application_time >= datetime.now() - timedelta(days=30 * 6),
+                Apply.state == 'approving',
+                Apply.applicant == json_obj['applicant'],
+                Apply.ware == ware.id
+            )
+            .order_by(desc(Apply.application_time))
+            .paginate(page=page, per_page=limit)
+            .items)
+
+    for apply in apply_list:
+        ware = db.session.query(Ware).filter(Ware.id == apply.ware).first()
+        kind = db.session.query(WareKind).filter(WareKind.id == ware.kind).first()
+        user = db.session.query(User).filter(User.id == apply.applicant).first()
+        department = db.session.query(Department).filter(Department.id == user.department).first()
+        model = db.session.query(_Model).filter(_Model.id == ware.model).first()
+
+        company_name = ''
+        if model.company is not None and model.company != '':
+            company = db.session.query(Company).filter(Company.id == model.company).first()
+            company_name = company.name
+
+        data.append({
+            "id": apply.id,
+            "applicant": user.name,
+            "department": department.name,
+            "kind": kind.name,
+            "model": model.name,
+            "quantity": apply.apply_quantity,
+            "company": company_name
+        })
+
+    return jsonify({
+        "code": 0,
+        "msg": "",
+        "count": len(data),
+        "data": data
+    })
 
 
 if __name__ == '__main__':
