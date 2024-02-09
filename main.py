@@ -171,11 +171,13 @@ class Inventory(db.Model):
     __tablename__ = 't_inventory'
 
     id = db.Column('ID', db.Integer, primary_key=True)
-    name = db.Column('Model', db.String)
+    model = db.Column('Model', db.Integer)
     state = db.Column('State', db.String)
     shelve = db.Column('Shelve', db.Integer)
     production_number = db.Column('ProductionNumber', db.String)
     _apply = db.Column('Apply', db.Integer)
+    using_place = db.Column('UsingPlace', db.Integer)
+    process_id = db.Column('Process', db.String)
 
 
 def send_message_with_logout(queue_listener):
@@ -1406,18 +1408,22 @@ def get_apply_by_applicant_and_type():
     else:
         json_obj = json.loads(request.args.get("searchParams"))
         kind = db.session.query(WareKind).filter(WareKind.id == json_obj['type']).first()
-        ware = db.session.query(Ware).filter(Ware.kind == kind.id).first()
-        apply_list = (
-            db.session.query(Apply)
-            .filter(
-                Apply.application_time >= datetime.now() - timedelta(days=30 * 6),
-                Apply.state == 'approving',
-                Apply.applicant == json_obj['applicant'],
-                Apply.ware == ware.id
-            )
-            .order_by(desc(Apply.application_time))
-            .paginate(page=page, per_page=limit)
-            .items)
+        ware_list = db.session.query(Ware).filter(Ware.kind == kind.id).all()
+        apply_list = []
+        for ware in ware_list:
+            apply_items = (
+                db.session.query(Apply)
+                .filter(
+                    Apply.application_time >= datetime.now() - timedelta(days=30 * 6),
+                    Apply.state == 'approving',
+                    Apply.applicant == json_obj['applicant'],
+                    Apply.ware == ware.id
+                )
+                .order_by(desc(Apply.application_time))
+                .paginate(page=page, per_page=limit)
+                .items)
+            for apply_item in apply_items:
+                apply_list.append(apply_item)
 
     for apply in apply_list:
         ware = db.session.query(Ware).filter(Ware.id == apply.ware).first()
@@ -1447,6 +1453,60 @@ def get_apply_by_applicant_and_type():
         "count": len(data),
         "data": data
     })
+
+
+@app.route('/stock/instock/process/start', methods=['POST'], endpoint='/stock/process/start')
+def start_instock_process():
+    # 备件申请Id
+    apply_id = request.json.get('apply_id')
+    ware_count = request.json.get('ware_count')
+    if apply_id is None:
+        # 无申请人申请备件的情况，入库
+        model_id = request.json.get('model_id')
+        post_data = {
+            "apply_id": "",
+            "model_id": model_id,
+            "ware_count": ware_count
+        }
+    else:
+        # 之前有备件申请的情况，入库
+        apply = db.session.query(Apply).filter(Apply.id == apply_id).first()
+        ware = db.session.query(Ware).filter(Ware.id == apply.ware).first()
+        model = db.session.query(_Model).filter(_Model.id == ware.model).first()
+
+        apply.state = 'done'
+        db.session.commit()
+
+        model_id = model.id
+        ware_count = (
+            apply.apply_quantity) if int(apply.apply_quantity) < int(ware_count) else ware_count
+
+        post_data = {
+            "apply_id": apply_id,
+            "model_id": model_id,
+            "ware_count": ware_count
+        }
+
+    inventory = Inventory()
+    inventory.model = model_id
+    inventory.state = 'instock'
+    if apply_id is not None:
+        inventory._apply = apply_id
+    db.session.add(inventory)
+    db.session.commit()
+
+    post_data['inventory_id'] = inventory.id
+    post_json = json.dumps(post_data)
+    headers = {'Content-Type': 'application/json'}
+    try:
+        requests.post('http://127.0.0.1:8080/process/instock/apply/start', headers=headers, data=post_json)
+    except:
+        _inventory = db.session.query(Inventory).filter(Inventory.id == inventory.id).first()
+        db.session.delete(_inventory)
+        db.session.commit()
+        return jsonify(code=Response.error)
+
+    return jsonify(code=Response.ok)
 
 
 if __name__ == '__main__':
