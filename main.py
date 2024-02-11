@@ -1520,6 +1520,18 @@ def start_instock_process():
     return jsonify(code=Response.ok)
 
 
+@app.route('/stock/page/instock/form', methods=['GET'], endpoint='in_stock_without_apply_page')
+def in_stock_page():
+    user_list = db.session.query(User).all()
+    lst = []
+    for user in user_list:
+        lst.append({
+            "name": user.name,
+            "id": user.id
+        })
+    return render_template('./instock_without_apply.html', applicant=lst)
+
+
 if __name__ == '__main__':
     port = int(cfg['server']['port'])
     server = pywsgi.WSGIServer(('0.0.0.0', port), app)

@@ -147,7 +147,18 @@
             if (obj.event === 'add')
             {
                 // 监听添加操作
-
+                var index = layer.open({
+                    title: '手动输入',
+                    type: 2,
+                    shade: 0.2,
+                    maxmin:true,
+                    shadeClose: true,
+                    area: ['100%', '100%'],
+                    content: '{{ url_for('in_stock_without_apply_page') }}',
+                });
+                $(window).on("resize", function () {
+                    layer.full(index);
+                });
             }
             else if (obj.event === 'refresh')
             {

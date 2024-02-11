@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>入库申请</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename = 'layui/lib/layui-v2.6.3/css/layui.css') }}" media="all">
+    <link rel="stylesheet" href="{{ url_for('static', filename = 'layui/css/public.css') }}" media="all">
+</head>
+<body>
+<div class="layuimini-container">
+    <div class="layuimini-main">
+        <form class="layui-form" action="">
+            <div class="layui-form-item">
+                <label class="layui-form-label">申请人</label>
+                <div class="layui-input-inline">
+                    <select id="applicant_select" name="applicant">
+                        {% for item in applicant %}
+                            <option value="{{ item.id }}">{{ item.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="layui-form-item">
+                <label class="layui-form-label">型  号</label>
+                <div class="layui-input-inline">
+                    <select id="top_type" name="top_type" lay-filter="change_top_type"></select>
+                </div>
+                <div class="layui-input-inline">
+                    <select id="child_type" name="child_type" lay-filter="change_child_type"></select>
+                </div>
+                <div class="layui-input-inline">
+                    <select id="model" name="model"></select>
+                </div>
+            </div>
+
+            <div class="layui-form-item">
+                <label class="layui-form-label">数量</label>
+                <div class="layui-input-inline">
+                    <input type="number" name="quantity" lay-verify="required" placeholder="备件数量" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+
+            <div class="layui-form-item">
+                <div class="layui-input-block">
+                    <button class="layui-btn" lay-submit="" lay-filter="sub">立即提交</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+</body>
+<script src="{{ url_for('static', filename = 'layui/lib/layui-v2.6.3/layui.js') }}" charset="utf-8"></script>
+<script src="{{ url_for('static', filename = 'layui/js/lay-config.js') }}" charset="utf-8"></script>
+<script>
+layui.use(['form', 'laydate'], function () {
+    var $ = layui.$,
+        form = layui.form,
+        laydate = layui.laydate;
+
+    $().ready(function(){
+        $.get('{{ url_for('/kind/get_top_kind') }}', function(data){
+            $("#top_type").append("<option value='0'>请选择</option>")
+            for (var i = 0; i < data.length; i++)
+                $("#top_type").append("<option value='" + data[i].id + "'>" + data[i].name + "</option>>");
+            form.render('select')
+            form.render();
+        });
+    });
+
+    form.on('select(change_top_type)', function () {
+        $("#child_type").html("<option value='0'>请选择</option>");
+        $("#model").html("<option value='0'>请选择</option>");
+
+        top_id = $("#top_type option:selected").val();
+        $.ajax({
+            type: 'post',
+            url: '{{ url_for('/kind/get_child_kind') }}',
+            data: JSON.stringify({"top": top_id}),
+            contentType:"application/json",
+            success(data) {
+                for (var i = 0; i < data.length; i++)
+                    $("#child_type").append("<option value='" + data[i].id + "'>" + data[i].name + "</option>");
+                form.render('select')
+                form.render();
+            }
+        });
+    });
+
+    form.on('select(change_child_type)', function () {
+        $("#model").html("<option value='0'>请选择</option>");
+
+        child_id = $("#child_type option:selected").val();
+        $.ajax({
+            type: 'post',
+            url: '{{ url_for('/kind/get_model_by_kind') }}',
+            data: JSON.stringify({"kind": child_id}),
+            contentType:"application/json",
+            success(data) {
+                for (var i = 0; i < data.length; i++)
+                    $("#model").append("<option value='" + data[i].id + "'>" + data[i].name + "</option>");
+                form.render('select')
+                form.render();
+            }
+        });
+    });
+
+    form.on('submit(sub)', function (data) {
+        layer.msg(JSON.stringify(data.field));
+<!--        $.ajax({-->
+<!--            type: 'POST',-->
+<!--            url: '{{ url_for('/ware/apply') }}',-->
+<!--            data: JSON.stringify(data.field),-->
+<!--            contentType: "application/json",-->
+<!--            success: function(data) {-->
+<!--                if (data.code == 200)-->
+<!--                {-->
+<!--                    var index = layer.alert('提交成功', {title: '提交成功'}, function () {-->
+<!--                        // 关闭弹出层-->
+<!--                        layer.close(index);-->
+
+<!--                        var iframeIndex = parent.layer.getFrameIndex(window.name);-->
+<!--                        parent.layer.close(iframeIndex);-->
+<!--                    });-->
+<!--                }-->
+<!--            }-->
+<!--        });-->
+        return false;
+    });
+});
+</script>
+</html>
