@@ -90,10 +90,10 @@
             cols: [[
 <!--                {type: "checkbox", width: 50},-->
                 {field: 'id', width: 200, title: 'ID', hide: true},
-                {field: 'applicant', width: 200, title: '申请人', align: 'center'},
+                {field: 'applicant_name', width: 200, title: '申请人', align: 'center'},
                 {field: 'department', width: 200, title: '部门', align: 'center'},
                 {field: 'kind', width: 200, title: '备件名称', align: 'center'},
-                {field: 'model', title: '型号', width: 200, align: 'center'},
+                {field: 'model_name', title: '型号', width: 200, align: 'center'},
                 {field: 'company', title: '厂家名称', width: 200, align: 'center'},
                 {field: 'quantity', title: '数量', width: 200, align: 'center', edit: 'text'},
                 {title: '操作', minWidth: 150, toolbar: '#currentTableBar', align: "center"}
@@ -121,7 +121,24 @@
         table.on('tool(currentTableFilter)', function (obj) {
             var data = obj.data;
             if (obj.event === 'save') {
-
+                var post_data = JSON.stringify({
+                                    "apply_id": data.id,
+                                    "ware_count": data.quantity,
+                                    "model_id": data.model_id,
+                                    "applicant_id": data.applicant_id
+                                });
+                $.ajax({
+                    type: 'POST',
+                    url: '{{ url_for('/stock/process/start') }}',
+                    data: post_data,
+                    contentType: "application/json",
+                    success: function(data) {
+                        if (data.code == 200)
+                            layer.alert('准备入库', function() {
+                                window,location.reload();
+                            });
+                    }
+                });
                 return false;
             }
         });

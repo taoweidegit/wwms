@@ -1439,10 +1439,12 @@ def get_apply_by_applicant_and_type():
 
         data.append({
             "id": apply.id,
-            "applicant": user.name,
+            "applicant_name": user.name,
+            "applicant_id": user.id,
             "department": department.name,
             "kind": kind.name,
-            "model": model.name,
+            "model_name": model.name,
+            "model_id": model.id,
             "quantity": apply.apply_quantity,
             "company": company_name
         })
@@ -1466,7 +1468,8 @@ def start_instock_process():
         post_data = {
             "apply_id": "",
             "model_id": model_id,
-            "ware_count": ware_count
+            "ware_count": ware_count,
+            "applicant_id": request.json.get('applicant_id')
         }
     else:
         # 之前有备件申请的情况，入库
@@ -1474,7 +1477,7 @@ def start_instock_process():
         ware = db.session.query(Ware).filter(Ware.id == apply.ware).first()
         model = db.session.query(_Model).filter(_Model.id == ware.model).first()
 
-        apply.state = 'done'
+        apply.state = "done"
         db.session.commit()
 
         model_id = model.id
@@ -1484,26 +1487,34 @@ def start_instock_process():
         post_data = {
             "apply_id": apply_id,
             "model_id": model_id,
-            "ware_count": ware_count
+            "ware_count": ware_count,
+            "applicant_id": apply.applicant
         }
 
-    inventory = Inventory()
-    inventory.model = model_id
-    inventory.state = 'instock'
-    if apply_id is not None:
-        inventory._apply = apply_id
-    db.session.add(inventory)
-    db.session.commit()
+    # 插入数据库
+    inventory_id_list = []
+    for i in range(ware_count):
+        inventory = Inventory()
+        inventory.model = model_id
+        inventory.state = 'instock'
+        if apply_id is not None:
+            inventory._apply = apply_id
+        db.session.add(inventory)
+        db.session.commit()
 
-    post_data['inventory_id'] = inventory.id
+        inventory_id_list.append(inventory.id)
+
+    # 向flowable发送请求
+    post_data['inventory_id'] = inventory_id_list
     post_json = json.dumps(post_data)
     headers = {'Content-Type': 'application/json'}
     try:
         requests.post('http://127.0.0.1:8080/process/instock/apply/start', headers=headers, data=post_json)
     except:
-        _inventory = db.session.query(Inventory).filter(Inventory.id == inventory.id).first()
-        db.session.delete(_inventory)
-        db.session.commit()
+        for inventory_id in inventory_id_list:
+            _inventory = db.session.query(Inventory).filter(Inventory.id == inventory_id).first()
+            db.session.delete(_inventory)
+            db.session.commit()
         return jsonify(code=Response.error)
 
     return jsonify(code=Response.ok)
