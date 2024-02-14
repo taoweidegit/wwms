@@ -12,7 +12,7 @@ layui.define(["jquery", "miniMenu", "element","miniTab", "miniTheme"], function 
         element = layui.element ,
         miniTab = layui.miniTab;
 
-    var data = {"href": "116.198.36.208:5000", "image": "static/layui/images/logo.png", "title": "三电仓库"}
+    var data = {"urlz": "116.198.36.208:5000", "image": "static/layui/images/logo.png", "title": "三电仓库"}
 
     if (!/http(s*):\/\//.test(location.href)) {
         var tips = "请先将项目部署至web容器（Apache/Tomcat/Nginx/IIS/等），否则部分数据将无法显示";
@@ -85,7 +85,7 @@ layui.define(["jquery", "miniMenu", "element","miniTab", "miniTheme"], function 
          * @param data
          */
         renderLogo: function (data) {
-            var html = '<a href="' + data.href + '"><img src="' + data.image + '" alt="logo"><h1>' + data.title + '</h1></a>';
+            var html = '<a href="116.198.36.208:5000"><img src="' + data.image + '" alt="logo"><h1>' + data.title + '</h1></a>';
             $('.layuimini-logo').html(html);
         },
 
