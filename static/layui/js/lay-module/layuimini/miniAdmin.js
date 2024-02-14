@@ -12,6 +12,8 @@ layui.define(["jquery", "miniMenu", "element","miniTab", "miniTheme"], function 
         element = layui.element ,
         miniTab = layui.miniTab;
 
+    var data = {"href": "116.198.36.208", "image": "static/layui/images/logo.png", "title": "三电仓库"}
+
     if (!/http(s*):\/\//.test(location.href)) {
         var tips = "请先将项目部署至web容器（Apache/Tomcat/Nginx/IIS/等），否则部分数据将无法显示";
         return layer.alert(tips);
