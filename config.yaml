@@ -11,3 +11,7 @@ message:
 
 server:
   port: 5000
+
+wx:
+  app_id: "wxb5d3c94274826474"
+  app_secret: "aebfe5052a8fdb870048e989d98c7f74"

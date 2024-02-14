@@ -39,6 +39,9 @@ mq_port = int(cfg['message']['port'])
 mq_conn = stomp.Connection([(mq_host, mq_port)])
 mq_conn.connect()
 
+wechat_mini_program_app_id = cfg['wx']['app_id']
+wechat_mini_program_app_secret = cfg['wx']['app_secret']
+
 
 class User(db.Model):
     __tablename__ = 't_user'
@@ -1530,6 +1533,56 @@ def in_stock_page():
             "id": user.id
         })
     return render_template('./instock_without_apply.html', applicant=lst)
+
+
+@app.route('/wx/login', methods=['GET'], endpoint='/wx/login')
+def wx_login():
+    wx_code = request.values.get("code")
+    employee_id = request.values.get("employee")
+
+    data = None
+
+    try:
+        response = requests.get(f'https://api.weixin.qq.com/sns/jscode2session?appid={wechat_mini_program_app_id}'
+                                f'&&secret={wechat_mini_program_app_secret}'
+                                f'&&js_code={wx_code}'
+                                f'&&grant_type=authorization_code')
+        response_data = json.loads(response.content)
+        err_code = int(response_data['errcode'])
+        if err_code == 0:
+            open_id = response_data['openid']
+            session_key = response_data['session_key']
+            union_id = response_data['unionid']
+
+            data = json.dumps({
+                "open_id": open_id,
+                "session_key": session_key,
+                "union_id": union_id})
+    except:
+        return jsonify(code=Response.error)
+
+    # 自动根据wechat信息查找用户
+    if employee_id == '':
+        user = db.session.query(User).filter(User.wechat_id == data).first()
+        if user is None:
+            return jsonify(code=Response.not_found_user)
+
+        role = db.session.query(Role).filter(Role.id == user.role).first()
+        rank = role.rank
+        return jsonify(code=Response.ok, rank=rank)
+
+    # 用户工号与微信未绑定
+    user = db.session.query(User).filter(User.employee_id == employee_id).first()
+    if user is None:
+        return jsonify(code=Response.not_found_user)
+
+    user.wechat_id = data
+    db.session.commit()
+
+    role = db.session.query(Role).filter(Role.id == user.role).first()
+    rank = role.rank
+
+    return jsonify(code=Response.ok, rank=rank)
 
 
 if __name__ == '__main__':
