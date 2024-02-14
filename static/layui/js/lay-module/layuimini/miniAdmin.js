@@ -83,8 +83,8 @@ layui.define(["jquery", "miniMenu", "element","miniTab", "miniTheme"], function 
          * @param data
          */
         renderLogo: function (data) {
-//            var html = '<a href="' + data.href + '"><img src="' + data.image + '" alt="logo"><h1>' + data.title + '</h1></a>';
-//            $('.layuimini-logo').html(html);
+            var html = '<a href="#"><img src="static/layui/images/logo.png" alt="logo"><h1>三电仓库</h1></a>';
+            $('.layuimini-logo').html(html);
         },
 
         /**
