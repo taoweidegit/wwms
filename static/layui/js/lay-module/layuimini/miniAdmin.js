@@ -12,8 +12,6 @@ layui.define(["jquery", "miniMenu", "element","miniTab", "miniTheme"], function 
         element = layui.element ,
         miniTab = layui.miniTab;
 
-    var data = {"urlz": "116.198.36.208:5000", "image": "static/layui/images/logo.png", "title": "三电仓库"}
-
     if (!/http(s*):\/\//.test(location.href)) {
         var tips = "请先将项目部署至web容器（Apache/Tomcat/Nginx/IIS/等），否则部分数据将无法显示";
         return layer.alert(tips);
@@ -85,7 +83,7 @@ layui.define(["jquery", "miniMenu", "element","miniTab", "miniTheme"], function 
          * @param data
          */
         renderLogo: function (data) {
-            var html = '<a href="116.198.36.208:5000"><img src="' + data.image + '" alt="logo"><h1>' + data.title + '</h1></a>';
+            var html = '<a href="' + data.href + '"><img src="' + d.image + '" alt="logo"><h1>' + d.title + '</h1></a>';
             $('.layuimini-logo').html(html);
         },
 
@@ -98,6 +96,7 @@ layui.define(["jquery", "miniMenu", "element","miniTab", "miniTheme"], function 
             $('#layuiminiHomeTabId').html('<span class="layuimini-tab-active"></span><span class="disable-close">' + data.title + '</span><i class="layui-icon layui-unselect layui-tab-close">ဆ</i>');
             $('#layuiminiHomeTabId').attr('lay-id', data.href);
             $('#layuiminiHomeTabIframe').html('<iframe width="100%" height="100%" frameborder="no" border="0" marginwidth="0" marginheight="0"  src="' + data.href + '"></iframe>');
+            alert(data.href)
         },
 
         /**
