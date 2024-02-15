@@ -19,7 +19,7 @@ if __name__ == '__main__':
         run(opts)
     elif platform.system() == "Linux":
         opts = ['main.py',  # 主程序文件
-                '-n wmms',
+                '-nwmms',
                 '-F',  # 打包单文件
                 # r'--icon=./Creeper.ico',
                 '--clean',
