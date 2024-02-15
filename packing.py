@@ -18,6 +18,14 @@ if __name__ == '__main__':
 
         run(opts)
     elif platform.system() == "Linux":
-        print('暂不支持')
+        opts = ['main.py',  # 主程序文件
+                '-n wmms',
+                '-F',  # 打包单文件
+                # r'--icon=./Creeper.ico',
+                '--clean',
+                '--add-data=templates:templates',  # 打包包含的html页面
+                '--add-data=static:static',  # 打包包含的静态资源
+                ]
+        run(opts)
     else:
         print(platform.system())
