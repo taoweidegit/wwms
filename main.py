@@ -2,6 +2,7 @@ import json
 import os
 from datetime import datetime, timedelta
 
+from urllib.parse import quote_plus as urlquote
 import oss2
 import requests
 import stomp
@@ -26,8 +27,8 @@ db_host = cfg['mysql']['host']
 db_port = cfg['mysql']['port']
 db_database = cfg['mysql']['database']
 app.config["SQLALCHEMY_DATABASE_URI"] \
-    = f"mysql+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_database}?charset=utf8"
-app.config["SQLALCHEMY_ECHO"] = False
+    = f"mysql+pymysql://{db_user}:{urlquote(db_password)}@{db_host}:{db_port}/{db_database}?charset=utf8"
+app.config["SQLALCHEMY_POOL_TIMEOUT"] = 1000
 db = SQLAlchemy(app)
 
 app.config['JWT_SECRET_KEY'] = 'twei3131'

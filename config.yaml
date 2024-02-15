@@ -1,9 +1,9 @@
 mysql:
-  host: "127.0.0.1"
+  host: 'rm-bp15baic8hwo7van1io.mysql.rds.aliyuncs.com'
   port: 3306
-  user: "root"
-  password: "19951017i"
-  database: "wmms"
+  user: 'taowei'
+  password: 'Yasi2016@'
+  database: 'wmms'
 
 message:
   host: "127.0.0.1"
