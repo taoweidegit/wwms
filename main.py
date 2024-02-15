@@ -1,8 +1,8 @@
 import json
 import os
 from datetime import datetime, timedelta
-
 from urllib.parse import quote_plus as urlquote
+
 import oss2
 import requests
 import stomp
@@ -11,8 +11,7 @@ from flask import Flask, render_template, request, jsonify, send_file
 from flask_jwt_extended import (JWTManager, jwt_required, create_access_token, get_jwt_identity, create_refresh_token,
                                 decode_token)
 from flask_sqlalchemy import SQLAlchemy
-from gevent import pywsgi
-from sqlalchemy import text, desc, null
+from sqlalchemy import text, desc
 
 from response_code import Response
 
@@ -1588,5 +1587,4 @@ def wx_login():
 
 if __name__ == '__main__':
     port = int(cfg['server']['port'])
-    server = pywsgi.WSGIServer(('0.0.0.0', port), app)
-    server.serve_forever()
+    app.run('0.0.0.0', port)
