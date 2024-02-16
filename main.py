@@ -3,7 +3,7 @@ import os
 from datetime import datetime, timedelta
 from urllib.parse import quote_plus as urlquote
 from gevent import pywsgi
-
+from loguru import logger
 import oss2
 import requests
 import stomp
@@ -185,15 +185,16 @@ class Inventory(db.Model):
 
 def send_message_with_logout(queue_listener):
     requests.get(f'http://127.0.0.1:8080/queue/sendMessage?queueName={queue_listener}&&message=logout')
+    logger.info('logout')
 
 
 def send_message_with_keep_alive(queue_listener):
     requests.get(f'http://127.0.0.1:8080/queue/sendMessage?queueName={queue_listener}&&message=keep')
+    logger.info('keep')
 
 
 @app.route('/', endpoint='index_page')
 def index():
-    print('hello')
     stomp_config = {
         'host': mq_host,
         'port': 61614,
