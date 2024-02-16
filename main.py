@@ -34,11 +34,6 @@ app.config['JWT_SECRET_KEY'] = 'twei3131'
 app.config["JWT_TOKEN_LOCATION"] = ["headers", "cookies", "json", "query_string"]
 jwt = JWTManager(app)
 
-mq_host = cfg['message']['host']
-mq_port = int(cfg['message']['port'])
-mq_conn = stomp.Connection([(mq_host, mq_port)])
-mq_conn.connect()
-
 wechat_mini_program_app_id = cfg['wx']['app_id']
 wechat_mini_program_app_secret = cfg['wx']['app_secret']
 
@@ -185,13 +180,7 @@ class Inventory(db.Model):
 
 @app.route('/', endpoint='index_page')
 def index():
-    stomp_config = {
-        'host': mq_host,
-        'port': 61614,
-        'user': 'admin',
-        'passcode': 'admin'
-    }
-    return render_template('./index.html', stomp_config=stomp_config)
+    return render_template('./index.html')
 
 
 @app.route('/user/page/login', endpoint='login_page')
@@ -340,8 +329,6 @@ def force_logout():
         _login.access_token = ''
         _login.refresh_token = ''
         db.session.commit()
-
-        mq_conn.send(_login.queue_listener, 'logout')
 
     return jsonify(code=Response.ok)
 
