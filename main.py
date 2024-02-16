@@ -28,7 +28,6 @@ db_port = cfg['mysql']['port']
 db_database = cfg['mysql']['database']
 app.config["SQLALCHEMY_DATABASE_URI"] \
     = f"mysql+pymysql://{db_user}:{urlquote(db_password)}@{db_host}:{db_port}/{db_database}?charset=utf8"
-app.config["SQLALCHEMY_POOL_TIMEOUT"] = 1000
 db = SQLAlchemy(app)
 
 app.config['JWT_SECRET_KEY'] = 'twei3131'
@@ -194,6 +193,7 @@ def send_message_with_keep_alive(queue_listener):
 
 @app.route('/', endpoint='index_page')
 def index():
+    print('hello')
     stomp_config = {
         'host': mq_host,
         'port': 61614,
