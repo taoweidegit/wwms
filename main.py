@@ -184,8 +184,8 @@ class Inventory(db.Model):
 
 
 def send_message_with_logout(queue_listener):
-    requests.get(f'http://127.0.0.1:8080/queue/sendMessage?queueName={queue_listener}&&message=logout')
-    logger.info('logout')
+    r = requests.get(f'http://127.0.0.1:8080/queue/sendMessage?queueName={queue_listener}&&message=logout')
+    logger.info(f'logout：{r.content}')
 
 
 def send_message_with_keep_alive(queue_listener):
