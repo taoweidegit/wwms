@@ -2,6 +2,7 @@ import json
 import os
 from datetime import datetime, timedelta
 from urllib.parse import quote_plus as urlquote
+from gevent import pywsgi
 
 import oss2
 import requests
@@ -1587,4 +1588,5 @@ def wx_login():
 
 if __name__ == '__main__':
     port = int(cfg['server']['port'])
-    app.run('0.0.0.0', port)
+    server = pywsgi.WSGIServer(('0.0.0.0', 5000), app)
+    server.serve_forever()

@@ -1,0 +1,14 @@
+oss2~=2.18.4
+requests~=2.31.0
+pyyaml~=6.0.1
+Flask~=2.3.3
+Flask-APScheduler~=1.13.0
+Flask-JWT-Extended~=4.6.0
+Flask-SQLAlchemy~=3.1.1
+gevent~=23.9.1
+numpy~=1.26.3
+openpyxl~=3.1.2
+pandas~=2.2.0
+PyMySQL~=1.1.0
+stomp.py~=8.1.0
+xlrd~=2.0.1
