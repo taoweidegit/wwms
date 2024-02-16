@@ -193,7 +193,12 @@
                     var code = result.code
 
                     if(code == 200)
-                        console.log('请求成功')
+                    {
+                        localStorage.removeItem("access_key");
+                        localStorage.removeItem("refresh_key");
+                        window.location = '{{ url_for('login_page') }}'
+                    }
+
                     if(code == 405)
                     {
                         var queue_listener = localStorage.getItem("queue_listener");
@@ -207,70 +212,6 @@
                 }
             });
         });
-
-        // 登陆状态保活
-        function get_guid() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-                var r = Math.random() * 16 | 0,
-                    v = c == 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
-        }
-
-        if (localStorage.getItem("guid") == null)
-            localStorage.setItem("guid", get_guid())
-
-        let stomp_url = 'ws://{{ stomp_config.host }}:{{ stomp_config.port }}/stomp';
-        stomp_client = Stomp.client(stomp_url);
-        console.log(stomp_client);
-        let stomp_headers = {
-            login: '{{ stomp_config.user }}',
-            passcode: '{{ stomp_config.passcode }}',
-            'client-id': localStorage.getItem("guid")
-        };
-        let destination = localStorage.getItem("queue_listener");
-        stomp_client.connect(stomp_headers, () => {
-            console.log('connect success');
-            stomp_client.subscribe(destination, (message) => {
-                if (message.body)
-                {
-                    console.log(message.body)
-                    if(message.body == 'logout')
-                    {
-                        alert('设备下线...')
-
-                        localStorage.removeItem("access_key");
-                        localStorage.removeItem("refresh_key");
-
-                        window.location = '{{ url_for('login_page') }}';
-                    }
-                    else if (message.body == 'keep')
-                    {
-                        // keep alive
-                        $.ajax({
-                            type: "POST",
-                            url: "{{ url_for('/user/refresh') }}",
-                            data: JSON.stringify({refresh_token: localStorage.getItem('refresh_key')}),
-                            contentType:'application/json',
-                            success: function(data){
-                                localStorage.setItem('access_key', data.access_token);
-                                setTimeout(function(){
-                                    alert('token刷新成功...')
-                                    window.location.reload();
-                                }, 1500);
-                            },
-                        });
-                    }
-                }
-            })
-        }, () => {
-            console.log('connect failed')
-        })
-
-<!--        stomp_client.send('heart_beat',{},destination)-->
-        setInterval(function () {
-            stomp_client.send('heart_beat',{},destination)
-        }, 20 * 1000);
     });
 
 </script>

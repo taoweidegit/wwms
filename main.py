@@ -183,16 +183,6 @@ class Inventory(db.Model):
     process_id = db.Column('Process', db.String)
 
 
-def send_message_with_logout(queue_listener):
-    r = requests.get(f'http://127.0.0.1:8080/queue/sendMessage?queueName={queue_listener}&&message=logout')
-    logger.info(f'logout：{r.content}')
-
-
-def send_message_with_keep_alive(queue_listener):
-    requests.get(f'http://127.0.0.1:8080/queue/sendMessage?queueName={queue_listener}&&message=keep')
-    logger.info('keep')
-
-
 @app.route('/', endpoint='index_page')
 def index():
     stomp_config = {
@@ -244,9 +234,6 @@ def expired_token_callback(jwt_header, jwt_payload):
     _login.access_token = ''
     _login.refresh_token = ''
     db.session.commit()
-
-    # mq_conn.send(_login.queue_listener, 'keep')
-    send_message_with_keep_alive(_login.queue_listener)
 
     return jsonify(code=Response.keep_alive)
 
@@ -302,12 +289,6 @@ def get_access_token():
             }
         )
     else:
-        queue_listener = login_list[0].queue_listener
-
-        # 若相同类型设备的状态为online,则将其踢下线
-        if login_list[0].state == 'online' and login_list[0].device == device:
-            # 将旧设备踢下线
-            send_message_with_logout(queue_listener)
         # 新设备上线
         _login = db.session.query(Login).filter(Login.id == login_list[0].id).first()
         _login.state = 'online'
@@ -344,9 +325,6 @@ def logout():
     _login.access_token = ''
     _login.refresh_token = ''
     db.session.commit()
-
-    # mq_conn.send(_login.queue_listener, 'logout')
-    send_message_with_logout(_login.queue_listener)
 
     return jsonify(code=Response.ok)
 
