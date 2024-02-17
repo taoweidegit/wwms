@@ -5,6 +5,11 @@ mysql:
   password: 'Yasi2016@'
   database: 'wmms'
 
+cache:
+  host: '127.0.0.1'
+  port: 6379
+  db: 1
+
 server:
   port: 5000
 

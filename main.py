@@ -12,7 +12,7 @@ from flask_jwt_extended import (JWTManager, jwt_required, create_access_token, g
 from flask_sqlalchemy import SQLAlchemy
 from gevent import pywsgi
 from sqlalchemy import text, desc
-
+from flask_caching import Cache
 from response_code import Response
 
 app = Flask(__name__)
@@ -32,6 +32,18 @@ db = SQLAlchemy(app)
 app.config['JWT_SECRET_KEY'] = 'twei3131'
 app.config["JWT_TOKEN_LOCATION"] = ["headers", "cookies", "json", "query_string"]
 jwt = JWTManager(app)
+
+cache_host = cfg['cache']['host']
+cache_port = int(cfg['cache']['port'])
+cache_db = int(cfg['cache']['db'])
+cache_config = {
+    'CACHE_TYPE': 'redis',
+    'CACHE_REDIS_HOST': cache_host,
+    'CACHE_REDIS_PORT': cache_port,
+    'CACHE_REDIS_DB': cache_db
+}
+cache = Cache(config=cache_config)
+cache.init_app(app)
 
 wechat_mini_program_app_id = cfg['wx']['app_id']
 wechat_mini_program_app_secret = cfg['wx']['app_secret']
@@ -178,13 +190,15 @@ class Inventory(db.Model):
 
 
 # sse
-@app.route('/poll', methods=['GET'], endpoint='/poll')
+@app.route('/heart_beat', methods=['GET'], endpoint='heart_beat')
 def poll():
     queue_listener = request.args.get('queue_listener')
     _login = db.session.query(Login).filter(Login.queue_listener == queue_listener).first()
     if _login.state == 'logout':
         return "logout"
-    return "none"
+    else:
+        cache.set(queue_listener, str(datetime.now()), timeout=60)
+        return "none"
 
 
 @app.route('/', endpoint='index_page')

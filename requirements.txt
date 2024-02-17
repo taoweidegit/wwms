@@ -13,3 +13,5 @@ PyMySQL~=1.1.0
 stomp.py~=8.1.0
 xlrd~=2.0.1
 loguru~=0.7.2
+redis~=5.0.1
+Flask-Caching~=2.1.0

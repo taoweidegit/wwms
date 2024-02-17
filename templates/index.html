@@ -151,15 +151,16 @@
         }
 
         setInterval(function() {
-            $.get('{{ url_for('/poll') }}?queue_listener='+localStorage['queue_listener'], function(data) {
-                if (data == 'logout')
-                {
-                    alert('token失效...');
-                    localStorage.removeItem("access_key");
-                    localStorage.removeItem("refresh_key");
-                    window.location = '{{ url_for('login_page') }}';
-                }
-            });
+            if (access_key != null)
+                $.get('{{ url_for('heart_beat') }}?queue_listener='+localStorage['queue_listener'], function(data) {
+                    if (data == 'logout')
+                    {
+                        alert('token失效...');
+                        localStorage.removeItem("access_key");
+                        localStorage.removeItem("refresh_key");
+                        window.location = '{{ url_for('login_page') }}';
+                    }
+                });
         }, 30 * 1000)
 
         let iniUrl = '{{ url_for('get_page_list') }}?jwt=' + localStorage.getItem("access_key")
