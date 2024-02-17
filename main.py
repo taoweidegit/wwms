@@ -2,16 +2,15 @@ import json
 import os
 from datetime import datetime, timedelta
 from urllib.parse import quote_plus as urlquote
-from gevent import pywsgi
-from loguru import logger
+
 import oss2
 import requests
-import stomp
 import yaml
 from flask import Flask, render_template, request, jsonify, send_file
 from flask_jwt_extended import (JWTManager, jwt_required, create_access_token, get_jwt_identity, create_refresh_token,
                                 decode_token)
 from flask_sqlalchemy import SQLAlchemy
+from gevent import pywsgi
 from sqlalchemy import text, desc
 
 from response_code import Response
@@ -178,6 +177,16 @@ class Inventory(db.Model):
     process_id = db.Column('Process', db.String)
 
 
+# sse
+@app.route('/poll', methods=['GET'], endpoint='/poll')
+def poll():
+    queue_listener = request.args.get('queue_listener')
+    _login = db.session.query(Login).filter(Login.queue_listener == queue_listener).first()
+    if _login.state == 'logout':
+        return "logout"
+    return "none"
+
+
 @app.route('/', endpoint='index_page')
 def index():
     return render_template('./index.html')
@@ -278,14 +287,21 @@ def get_access_token():
             }
         )
     else:
-        # 新设备上线
-        _login = db.session.query(Login).filter(Login.id == login_list[0].id).first()
-        _login.state = 'online'
-        _login.queue_listener = f'channel_{str(uid)}_{device}'
-        _login.access_token = access_token
-        _login.refresh_token = refresh_token
-        _login.access_time = datetime.now()
-        db.session.commit()
+        _login = login_list[0]
+
+        if _login.state == 'online':
+            _login.state = 'logout'
+            _login.access_token = ''
+            _login.refresh_token = ''
+            db.session.commit()
+        else:
+            # 新设备上线
+            _login.state = 'online'
+            _login.queue_listener = f'channel_{str(uid)}_{device}'
+            _login.access_token = access_token
+            _login.refresh_token = refresh_token
+            _login.access_time = datetime.now()
+            db.session.commit()
 
         response = jsonify(
             {
@@ -295,6 +311,7 @@ def get_access_token():
                 'queue_listener': _login.queue_listener
             }
         )
+
     return response
 
 

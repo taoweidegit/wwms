@@ -150,6 +150,18 @@
             });
         }
 
+        setInterval(function() {
+            $.get('{{ url_for('/poll') }}?queue_listener='+localStorage['queue_listener'], function(data) {
+                if (data == 'logout')
+                {
+                    alert('token失效...');
+                    localStorage.removeItem("access_key");
+                    localStorage.removeItem("refresh_key");
+                    window.location = '{{ url_for('login_page') }}';
+                }
+            });
+        }, 30 * 1000)
+
         let iniUrl = '{{ url_for('get_page_list') }}?jwt=' + localStorage.getItem("access_key")
         var options = {
 <!--            iniUrl: "{{ url_for('static', filename = 'layui/api/init.json') }}",    // 初始化接口-->
