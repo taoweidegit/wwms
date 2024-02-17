@@ -6,8 +6,9 @@ mysql:
   database: 'wmms'
 
 cache:
-  host: '127.0.0.1'
+  host: 'r-bp1zrvzjmpj9j8entepd.redis.rds.aliyuncs.com'
   port: 6379
+  password: 'r-bp1zrvzjmpj9j8ente:Yasi2016@'
   db: 1
 
 server:

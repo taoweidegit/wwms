@@ -36,11 +36,13 @@ jwt = JWTManager(app)
 cache_host = cfg['cache']['host']
 cache_port = int(cfg['cache']['port'])
 cache_db = int(cfg['cache']['db'])
+cache_password = cfg['cache']['password']
 cache_config = {
     'CACHE_TYPE': 'redis',
     'CACHE_REDIS_HOST': cache_host,
     'CACHE_REDIS_PORT': cache_port,
-    'CACHE_REDIS_DB': cache_db
+    'CACHE_REDIS_DB': cache_db,
+    'CACHE_REDIS_PASSWORD': cache_password
 }
 cache = Cache(config=cache_config)
 cache.init_app(app)
