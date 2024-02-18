@@ -150,18 +150,45 @@
             });
         }
 
-        setInterval(function() {
-            if (access_key != null)
-                $.get('{{ url_for('heart_beat') }}?queue_listener='+localStorage['queue_listener'], function(data) {
-                    if (data == 'logout')
-                    {
-                        alert('token失效...');
-                        localStorage.removeItem("access_key");
-                        localStorage.removeItem("refresh_key");
-                        window.location = '{{ url_for('login_page') }}';
-                    }
-                });
-        }, 30 * 1000)
+        var ws = new WebSocket('ws://{{ rabbit_url }}/ws');
+        var client = Stomp.over(ws);
+        var on_connect = function(x) {
+            client.subscribe("/queue/logout", function(data) {
+                var msg = data.body;
+                if (msg == localStorage['queue_listener'])
+                {
+                    alert('token失效...');
+                    localStorage.removeItem("access_key");
+                    localStorage.removeItem("refresh_key");
+                    window.location = '{{ url_for('login_page') }}';
+                }
+            });
+        };
+        var on_error =  function() {
+            console.log('error');
+        };
+        client.connect('guest', 'guest', on_connect, on_error, '/');
+
+        // SSE接收
+        var source = new EventSource("{{ url_for('heart_beat') }}?queue_listener=" + localStorage['queue_listener']);
+        // readyState一个 unsigned short 值，代表连接状态。可能值是 CONNECTING (0), OPEN (1), 或者 CLOSED (2)。
+        console.log('EventSource.readyState ' + source.readyState);
+
+        // sse 连接开启时回调函数
+        source.onopen = function (event) {
+            console.log("on open");
+            console.log('EventSource.readyState ' + source.readyState);
+        }
+        // 消息监听，event 是后端返回的数据,相当于python字典
+        source.onmessage = function (event) {
+            console.log('heart beat')
+        }
+        // 监听 error 事件，后端超时没有传输数据时触发
+        source.onerror = function (event) {
+            console.log("error happened");
+            source.close();
+            console.log('EventSource.readyState ' + source.readyState);
+        }
 
         let iniUrl = '{{ url_for('get_page_list') }}?jwt=' + localStorage.getItem("access_key")
         var options = {

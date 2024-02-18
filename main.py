@@ -1,12 +1,14 @@
 import json
 import os
+import time
 from datetime import datetime, timedelta
 from urllib.parse import quote_plus as urlquote
 
+import flask
 import oss2
 import requests
 import yaml
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, stream_with_context
 from flask_caching import Cache
 from flask_jwt_extended import (JWTManager, jwt_required, create_access_token, get_jwt_identity, create_refresh_token,
                                 decode_token)
@@ -14,6 +16,8 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text, desc
 
 from response_code import Response
+from loguru import logger
+import pika
 
 app = Flask(__name__)
 
@@ -46,6 +50,13 @@ cache_config = {
 }
 cache = Cache(config=cache_config)
 cache.init_app(app)
+
+rabbit_host = cfg['rabbit']['host']
+rabbit_port = int(cfg['rabbit']['port'])
+rabbit_conn = pika.BlockingConnection(pika.ConnectionParameters(host=rabbit_host, port=rabbit_port, ))
+rabbit_channel = rabbit_conn.channel()
+rabbit_channel.queue_declare(queue='logout', durable=True)
+rabbit_channel.queue_declare(queue='heart_beat', durable=True)
 
 wechat_mini_program_app_id = cfg['wx']['app_id']
 wechat_mini_program_app_secret = cfg['wx']['app_secret']
@@ -191,21 +202,28 @@ class Inventory(db.Model):
     process_id = db.Column('Process', db.String)
 
 
-# sse
 @app.route('/heart_beat', methods=['GET'], endpoint='heart_beat')
-def poll():
+def heart_beat():
     queue_listener = request.args.get('queue_listener')
-    _login = db.session.query(Login).filter(Login.queue_listener == queue_listener).first()
-    if _login.state == 'logout':
-        return "logout"
-    else:
-        cache.set(queue_listener, str(datetime.now()), timeout=60)
-        return "none"
+
+    def stream():
+        while True:
+            rabbit_channel.basic_publish(exchange='', routing_key='heart_beat', body=queue_listener)
+            json_data = json.dumps({})
+            yield f"data:{json_data}\n\n"
+            time.sleep(20)
+
+    response = flask.Response(stream_with_context(stream()), mimetype="text/event-stream")
+    response.headers["Cache-Control"] = "no-cache"
+    response.headers["X-Accel-Buffering"] = "no"
+    return response
 
 
 @app.route('/', endpoint='index_page')
 def index():
-    return render_template('./index.html')
+    rabbit_url = f'{rabbit_host}:15674'
+
+    return render_template('./index.html', rabbit_url=rabbit_url)
 
 
 @app.route('/user/page/login', endpoint='login_page')
@@ -248,6 +266,10 @@ def expired_token_callback(jwt_header, jwt_payload):
     _login.access_token = ''
     _login.refresh_token = ''
     db.session.commit()
+
+    queue_listener = _login.queue_listener
+    rabbit_channel.basic_publish(exchange='', routing_key='logout', body=queue_listener)
+    logger.info('logout')
 
     return jsonify(code=Response.keep_alive)
 
@@ -310,6 +332,9 @@ def get_access_token():
             _login.access_token = ''
             _login.refresh_token = ''
             db.session.commit()
+
+            rabbit_channel.basic_publish(exchange='', routing_key='logout', body=_login.queue_listener)
+            logger.info('logout')
         else:
             # 新设备上线
             _login.state = 'online'
@@ -1589,4 +1614,3 @@ if __name__ == '__main__':
     port = int(cfg['server']['port'])
     print('Server Start...')
     app.run(host='0.0.0.0', port=5000)
-

@@ -11,6 +11,10 @@ cache:
   password: 'r-bp1zrvzjmpj9j8ente:Yasi2016@'
   db: 1
 
+rabbit:
+  host: '121.196.216.253'
+  port: 5672
+
 server:
   port: 5000
 
