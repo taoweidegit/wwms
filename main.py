@@ -7,12 +7,12 @@ import oss2
 import requests
 import yaml
 from flask import Flask, render_template, request, jsonify, send_file
+from flask_caching import Cache
 from flask_jwt_extended import (JWTManager, jwt_required, create_access_token, get_jwt_identity, create_refresh_token,
                                 decode_token)
 from flask_sqlalchemy import SQLAlchemy
-from gevent import pywsgi
 from sqlalchemy import text, desc
-from flask_caching import Cache
+
 from response_code import Response
 
 app = Flask(__name__)
@@ -1587,5 +1587,6 @@ def wx_login():
 
 if __name__ == '__main__':
     port = int(cfg['server']['port'])
-    server = pywsgi.WSGIServer(('0.0.0.0', 5000), app)
-    server.serve_forever()
+    print('Server Start...')
+    app.run(host='0.0.0.0', port=5000)
+
