@@ -210,6 +210,9 @@ def heart_beat():
         timeout_count = 2 * 60 * 60 / 20
 
         while True:
+            if queue_listener == 'undefined':
+                break
+
             try:
                 rabbit_channel.basic_publish(exchange='', routing_key='heart_beat', body=queue_listener)
             except Exception as r:

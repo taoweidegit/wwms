@@ -122,7 +122,7 @@
             miniTongji = layui.miniTongji;
 
         let access_key = localStorage.getItem("access_key");
-        if(access_key == null || access_key == 'undefined')
+        if(access_key == null || access_key == 'undefined' || localStorage['queue_listener'] == null)
             layer.msg('尚未登陆', function () {
                 window.location = '{{ url_for('login_page') }}';
             });
