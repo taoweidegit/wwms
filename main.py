@@ -53,7 +53,7 @@ cache.init_app(app)
 
 rabbit_host = cfg['rabbit']['host']
 rabbit_port = int(cfg['rabbit']['port'])
-rabbit_conn = pika.BlockingConnection(pika.ConnectionParameters(host=rabbit_host, port=rabbit_port, ))
+rabbit_conn = pika.BlockingConnection(pika.ConnectionParameters(host=rabbit_host, port=rabbit_port, heartbeat=0))
 rabbit_channel = rabbit_conn.channel()
 rabbit_channel.queue_declare(queue='logout', durable=True)
 rabbit_channel.queue_declare(queue='heart_beat', durable=True)
