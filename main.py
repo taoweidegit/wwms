@@ -207,11 +207,21 @@ def heart_beat():
     queue_listener = request.args.get('queue_listener')
 
     def stream():
+        timeout_count = 2 * 60 * 60 / 20
+
         while True:
-            rabbit_channel.basic_publish(exchange='', routing_key='heart_beat', body=queue_listener)
+            try:
+                rabbit_channel.basic_publish(exchange='', routing_key='heart_beat', body=queue_listener)
+            except:
+                logger.error('err')
+
             json_data = json.dumps({})
             yield f"data:{json_data}\n\n"
             time.sleep(20)
+
+            timeout_count -= 1
+            if timeout_count == 0:
+                break
 
     response = flask.Response(stream_with_context(stream()), mimetype="text/event-stream")
     response.headers["Cache-Control"] = "no-cache"
