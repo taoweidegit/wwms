@@ -212,8 +212,8 @@ def heart_beat():
         while True:
             try:
                 rabbit_channel.basic_publish(exchange='', routing_key='heart_beat', body=queue_listener)
-            except:
-                logger.error('err')
+            except Exception as r:
+                logger.error(f'err: {r}')
 
             json_data = json.dumps({})
             yield f"data:{json_data}\n\n"
