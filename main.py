@@ -286,7 +286,12 @@ def expired_token_callback(jwt_header, jwt_payload):
     db.session.commit()
 
     queue_listener = _login.queue_listener
-    rabbit_channel.basic_publish(exchange='', routing_key='logout', body=queue_listener)
+    rabbit_channel.basic_publish(exchange='',
+                                 routing_key='logout',
+                                 body=queue_listener,
+                                 properties=pika.BasicProperties(
+                                     expiration=2000
+                                 ))
     logger.info('logout')
 
     return jsonify(code=Response.keep_alive)
@@ -351,7 +356,12 @@ def get_access_token():
             _login.refresh_token = ''
             db.session.commit()
 
-            rabbit_channel.basic_publish(exchange='', routing_key='logout', body=_login.queue_listener)
+            rabbit_channel.basic_publish(exchange='',
+                                         routing_key='logout',
+                                         body=_login.queue_listener,
+                                         properties=pika.BasicProperties(
+                                             expiration=2000
+                                         ))
             logger.info('logout')
         else:
             # 新设备上线
