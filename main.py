@@ -218,7 +218,8 @@ def heart_beat():
                 break
 
             try:
-                rabbit_channel.basic_publish(exchange='', routing_key='heart_beat', body=queue_listener)
+                # rabbit_channel.basic_publish(exchange='', routing_key='heart_beat', body=queue_listener)
+                cache.set(queue_listener, datetime.now().timestamp(), timeout=60)
             except Exception as r:
                 logger.error(f'err: {r}')
 
