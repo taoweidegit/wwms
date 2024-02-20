@@ -155,7 +155,16 @@
         var on_connect = function(x) {
             client.subscribe("/queue/logout", function(data) {
                 var msg = data.body;
-                if (msg == localStorage['queue_listener'])
+
+                var dateString = msg.split('_')[3]
+                var date_from_msg = new Date(dateString.replace(/-/g, "/"));
+                var date_now = new Date();
+                var dateDiff = date_now.getTime() - date_from_msg.getTime();
+
+                var array = msg.split('_')
+                var q = array[0] + '_' + array[1] + '_' + array[2]
+
+                if (q == localStorage['queue_listener'] && dateDiff < 3000)
                 {
                     alert('token失效...');
                     localStorage.removeItem("access_key");

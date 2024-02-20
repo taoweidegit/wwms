@@ -285,13 +285,14 @@ def expired_token_callback(jwt_header, jwt_payload):
     _login.refresh_token = ''
     db.session.commit()
 
-    queue_listener = _login.queue_listener
-    rabbit_channel.basic_publish(exchange='',
-                                 routing_key='logout',
-                                 body=queue_listener,
-                                 properties=pika.BasicProperties(
-                                     expiration=2000
-                                 ))
+    try:
+        queue_listener = _login.queue_listener
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        rabbit_channel.basic_publish(exchange='',
+                                     routing_key='logout',
+                                     body=f"{queue_listener}_{timestamp}")
+    except Exception as e:
+        logger.error(e)
     logger.info('logout')
 
     return jsonify(code=Response.keep_alive)
@@ -349,7 +350,7 @@ def get_access_token():
         )
     else:
         _login = login_list[0]
-
+        logger.info(_login.state)
         if _login.state == 'online':
             _login.state = 'logout'
             _login.access_token = ''
@@ -357,12 +358,11 @@ def get_access_token():
             db.session.commit()
 
             try:
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 rabbit_channel.basic_publish(exchange='',
                                              routing_key='logout',
-                                             body=_login.queue_listener,
-                                             properties=pika.BasicProperties(
-                                                 expiration=2000
-                                             ))
+                                             body=f"{_login.queue_listener}_{timestamp}")
+                logger.info(f"{_login.queue_listener}_{timestamp}")
             except Exception as e:
                 logger.error(e)
             logger.info('logout')
