@@ -356,12 +356,15 @@ def get_access_token():
             _login.refresh_token = ''
             db.session.commit()
 
-            rabbit_channel.basic_publish(exchange='',
-                                         routing_key='logout',
-                                         body=_login.queue_listener,
-                                         properties=pika.BasicProperties(
-                                             expiration=2000
-                                         ))
+            try:
+                rabbit_channel.basic_publish(exchange='',
+                                             routing_key='logout',
+                                             body=_login.queue_listener,
+                                             properties=pika.BasicProperties(
+                                                 expiration=2000
+                                             ))
+            except Exception as e:
+                logger.error(e)
             logger.info('logout')
         else:
             # 新设备上线
