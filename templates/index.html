@@ -161,6 +161,9 @@
                 var date_now = new Date();
                 var dateDiff = date_now.getTime() - date_from_msg.getTime();
 
+                console.log(dateDiff)
+                console.log(dateDiff < 3000)
+
                 var array = msg.split('_')
                 var q = array[0] + '_' + array[1] + '_' + array[2]
 
