@@ -60,7 +60,6 @@ rabbit_conn = pika.BlockingConnection(pika.ConnectionParameters(host=rabbit_host
                                                                 connection_attempts=10))
 rabbit_channel = rabbit_conn.channel()
 rabbit_channel.queue_declare(queue='logout', durable=True)
-rabbit_channel.queue_declare(queue='heart_beat', durable=True)
 
 wechat_mini_program_app_id = cfg['wx']['app_id']
 wechat_mini_program_app_secret = cfg['wx']['app_secret']
@@ -182,6 +181,7 @@ class Apply(db.Model):
     warehouse = db.Column('Warehouse', db.Integer)
     apply_id = db.Column('ApplyId', db.String)
     apply_start_id = db.Column('ApplyStartId', db.Integer)
+    reason = db.Column('Reason', db.String)
 
 
 class ApplyStart(db.Model):
@@ -1052,6 +1052,7 @@ def get_ware_application():
         ware_quantity = str(apply.ware_quantity) if apply.ware_quantity is not None else '0'
         # warehousing_time = apply.warehousing_time
         apply_time = apply.application_time.strftime("%Y-%m-%d %H:%M:%S")
+        apply_reason = apply.reason if apply.reason is not None else ''
 
         ware = db.session.query(Ware).filter(Ware.id == apply.ware).first()
         if ware.model is not None:
@@ -1100,7 +1101,8 @@ def get_ware_application():
             "unit_name": _unit,
             "warehouse": warehouse_name,
             "state": state,
-            "ware_kind": ware_kind
+            "ware_kind": ware_kind,
+            "apply_reason": apply_reason
         })
 
     response = {
@@ -1188,6 +1190,7 @@ def apply_ware():
     child_type = request.json.get("child_type")
     mod = request.json.get("model")
     quantity = request.json.get("quantity")
+    reason = request.json.get("reason")
 
     state = 'pending'
 
@@ -1199,6 +1202,8 @@ def apply_ware():
     apply.applicant = uid
     apply.state = state
     apply.application_time = datetime.now()
+    if reason is not None:
+        apply.reason = reason
 
     ware = db.session.query(Ware).filter(Ware.model == mod).first()
     apply.ware = ware.id
@@ -1309,6 +1314,7 @@ def get_plan_list():
                 "applicant": user.name,
                 "eid": user.employee_id,
                 "apply_num": apply.apply_quantity,
+                "apply_reason": apply.reason if apply.reason is not None else '无',
                 "type": kind.name if kind is not None else "",
                 "parentId": parent_id,
                 "is_pass": is_pass
