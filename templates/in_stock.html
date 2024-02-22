@@ -68,7 +68,6 @@
 
         form.on('select(change_applicant)', function () {
             $("#form_type_select").html("<option value='0'>请选择</option>");
-            $("#form_model_select").html("<option value='0'>请选择</option>");
 
             applicant_id = $("#form_applicant_select option:selected").val();
             $.ajax({

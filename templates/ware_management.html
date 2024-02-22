@@ -74,6 +74,9 @@
                 {field: 'apply_reason', width: 200, title: '申请原因', align: 'center'},
                 {field: 'time', width: 200, title: '申请时间', sort: true, align: 'center'},
                 {field: 'state', width: 300, title: '状态', align: 'center', templet: function(d){
+                    if (d.state == 'approving' && d.warehouse == '无')
+                        return '核验中'
+
                     if (d.state == 'approving')
                         return '计量审核通过,等待事业部审核'
                     else if (d.state == 'pending')
