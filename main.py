@@ -1611,8 +1611,8 @@ def wx_login():
                                 f'&&grant_type=authorization_code')
         response_data = json.loads(response.content)
         logger.info(response_data)
-        err_code = int(response_data['errcode'])
-        if err_code == 0:
+        err_code = response_data['errcode']
+        if err_code is None and err_code is not None:
             union_id = response_data['unionid']
     except Exception as r:
         logger.error(f'{r}')
