@@ -1602,18 +1602,14 @@ def wx_login():
     wx_code = request.values.get("code")
     employee_id = request.values.get("employee")
 
-    union_id = None
-
     try:
         response = requests.get(f'https://api.weixin.qq.com/sns/jscode2session?appid={wechat_mini_program_app_id}'
                                 f'&&secret={wechat_mini_program_app_secret}'
                                 f'&&js_code={wx_code}'
                                 f'&&grant_type=authorization_code')
         response_data = json.loads(response.content)
-        err_code = response_data['errcode']
-        if err_code is None and err_code is not None:
-            union_id = response_data['unionid']
-        else:
+        union_id = response_data['unionid']
+        if union_id is None:
             return jsonify(code=Response.error)
     except Exception as r:
         logger.error(f'{r}')
