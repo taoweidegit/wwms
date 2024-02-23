@@ -1613,6 +1613,7 @@ def wx_login():
         err_code = int(response_data['errcode'])
         if err_code == 0:
             union_id = response_data['unionid']
+        logger.info(err_code)
     except Exception as r:
         logger.error(f'{r}')
         return jsonify(code=Response.error)
