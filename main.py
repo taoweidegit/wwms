@@ -1602,7 +1602,7 @@ def wx_login():
     wx_code = request.values.get("code")
     employee_id = request.values.get("employee")
 
-    data = None
+    union_id = None
 
     try:
         response = requests.get(f'https://api.weixin.qq.com/sns/jscode2session?appid={wechat_mini_program_app_id}'
@@ -1612,20 +1612,14 @@ def wx_login():
         response_data = json.loads(response.content)
         err_code = int(response_data['errcode'])
         if err_code == 0:
-            open_id = response_data['openid']
-            session_key = response_data['session_key']
             union_id = response_data['unionid']
-
-            data = json.dumps({
-                "open_id": open_id,
-                "session_key": session_key,
-                "union_id": union_id})
-    except:
+    except Exception as r:
+        logger.error(f'{r}')
         return jsonify(code=Response.error)
 
     # 自动根据wechat信息查找用户
-    if employee_id == '':
-        user = db.session.query(User).filter(User.wechat_id == data).first()
+    if employee_id == '' or employee_id is None:
+        user = db.session.query(User).filter(User.wechat_id == union_id).first()
         if user is None:
             return jsonify(code=Response.not_found_user)
 
@@ -1638,7 +1632,7 @@ def wx_login():
     if user is None:
         return jsonify(code=Response.not_found_user)
 
-    user.wechat_id = data
+    user.wechat_id = union_id
     db.session.commit()
 
     role = db.session.query(Role).filter(Role.id == user.role).first()
