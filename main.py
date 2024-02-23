@@ -1610,10 +1610,11 @@ def wx_login():
                                 f'&&js_code={wx_code}'
                                 f'&&grant_type=authorization_code')
         response_data = json.loads(response.content)
-        logger.info(response_data)
         err_code = response_data['errcode']
         if err_code is None and err_code is not None:
             union_id = response_data['unionid']
+        else:
+            return jsonify(code=Response.error)
     except Exception as r:
         logger.error(f'{r}')
         return jsonify(code=Response.error)
