@@ -1643,7 +1643,7 @@ def wx_rank():
     if user is None:
         return jsonify(code=Response.not_found_user)
 
-    role = db.session.query(Role).filter(Role.id == user.role)
+    role = db.session.query(Role).filter(Role.id == user.role).first()
 
     return jsonify(code=Response.ok, rank=role.rank)
 
