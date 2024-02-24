@@ -350,8 +350,7 @@ def get_access_token():
         )
     else:
         _login = login_list[0]
-        logger.info(_login.state)
-        if _login.state == 'online':
+        if _login.state == 'online' and _login.device == 'Laptop':
             _login.state = 'logout'
             _login.access_token = ''
             _login.refresh_token = ''
