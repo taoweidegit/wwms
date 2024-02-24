@@ -1621,9 +1621,7 @@ def wx_login():
         if user is None:
             return jsonify(code=Response.not_found_user)
 
-        role = db.session.query(Role).filter(Role.id == user.role).first()
-        rank = role.rank
-        return jsonify(code=Response.ok, rank=rank)
+        return jsonify(code=Response.ok, eid=user.employee_id)
 
     # 用户工号与微信未绑定
     user = db.session.query(User).filter(User.employee_id == employee_id).first()
@@ -1633,10 +1631,7 @@ def wx_login():
     user.wechat_id = union_id
     db.session.commit()
 
-    role = db.session.query(Role).filter(Role.id == user.role).first()
-    rank = role.rank
-
-    return jsonify(code=Response.ok, rank=rank)
+    return jsonify(code=Response.ok, eid=user.employee_id)
 
 
 if __name__ == '__main__':
