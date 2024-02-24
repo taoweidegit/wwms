@@ -1633,6 +1633,21 @@ def wx_login():
     return jsonify(code=Response.ok, eid=user.employee_id)
 
 
+@app.route('/wx/rank', methods=['POST'], endpoint='/wx/rank')
+@jwt_required()
+def wx_rank():
+    identity = get_jwt_identity()
+    uid = identity.get('uid')
+
+    user = db.session.query(User).filter(User.id == uid).first()
+    if user is None:
+        return jsonify(code=Response.not_found_user)
+
+    role = db.session.query(Role).filter(Role.id == user.role)
+
+    return jsonify(code=Response.ok, rank=role.rank)
+
+
 if __name__ == '__main__':
     port = int(cfg['server']['port'])
     print('Server Start...')
