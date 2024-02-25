@@ -1596,6 +1596,45 @@ def in_stock_page():
     return render_template('./instock_without_apply.html', applicant=lst)
 
 
+@app.route('/stock/instock/query', methods=['GET'], endpoint='query_in_stock_from_un_verification')
+def query_in_stock_from_un_verification():
+    lst = db.session.query(Inventory).filter(Inventory.state == 'in_check').all()
+    collection = {}
+    for ware in lst:
+        model_id = ware.model
+        if model_id not in collection.keys():
+            collection[model_id] = [ware.id]
+        else:
+            collection[model_id].append(ware.id)
+
+    response_list = list()
+
+    for it in collection.keys():
+        _model = db.session.query(_Model).filter(_Model.id == it).first()
+        _model_name, _model_id, company_id = _model.name, _model.id, _model.company
+        if company_id is None or company_id == '':
+            company_id, company_name = -1, '无'
+        else:
+            company = db.session.query(Company).filter(Company.id == company_id).first()
+            company_name = company.name
+
+        kind_entity = db.session.query(WareKind).filter(WareKind.id == _model.kind).first()
+        top_kind_entity = db.session.query(WareKind).filter(WareKind.id == kind_entity.pid).first()
+        kind_id, kind_name = top_kind_entity.id, top_kind_entity.name
+        response_list.append({
+            'company_id': company_id,
+            'company_name': company_name,
+            'model_id': _model_id,
+            'model_name': _model_name,
+            'kind_id': kind_id,
+            'kind_name': kind_name,
+            'quantity': len(collection[it]),
+            'detail': collection[it]
+        })
+
+    return jsonify(response_list)
+
+
 @app.route('/wx/login', methods=['GET'], endpoint='/wx/login')
 def wx_login():
     wx_code = request.values.get("code")
