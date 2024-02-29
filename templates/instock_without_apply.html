@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>入库申请</title>
+    <title>入库申请(未申请的)</title>
     <meta name="renderer" content="webkit">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -16,7 +16,7 @@
             <div class="layui-form-item">
                 <label class="layui-form-label">申请人</label>
                 <div class="layui-input-inline">
-                    <select id="applicant_select" name="applicant">
+                    <select id="applicant" name="applicant">
                         {% for item in applicant %}
                             <option value="{{ item.id }}">{{ item.name }}</option>
                         {% endfor %}
@@ -25,7 +25,7 @@
             </div>
 
             <div class="layui-form-item">
-                <label class="layui-form-label">型  号</label>
+                <label class="layui-form-label">型号</label>
                 <div class="layui-input-inline">
                     <select id="top_type" name="top_type" lay-filter="change_top_type"></select>
                 </div>
@@ -109,7 +109,12 @@ layui.use(['form', 'laydate'], function () {
     });
 
     form.on('submit(sub)', function (data) {
-        layer.msg(JSON.stringify(data.field));
+        var post_data = JSON.stringify({
+                            "ware_count": data.field.quantity,
+                            "model_id": data.field.model,
+                            "applicant_id": data.field.applicant
+                        });
+        layer.msg(post_data);
 <!--        $.ajax({-->
 <!--            type: 'POST',-->
 <!--            url: '{{ url_for('/ware/apply') }}',-->

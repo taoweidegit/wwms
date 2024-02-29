@@ -1523,7 +1523,7 @@ def get_apply_by_applicant_and_type():
 
 @app.route('/stock/instock/process/start', methods=['POST'], endpoint='/stock/process/start')
 def start_instock_process():
-    # 备件申请Id
+    # 备件申请记录Id
     apply_id = request.json.get('apply_id')
     ware_count = request.json.get('ware_count')
     if apply_id is None:
